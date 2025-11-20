@@ -1,6 +1,6 @@
 # Acadevmy 🎓
 
-**Acadevmy** is an online learning platform connecting students with verified mentors. It features structured communication, session booking, real-time chat, and review gating to ensure trustworthy and effective mentorship.
+**Acadevmy** is an online platform connecting students with verified mentors. It features structured communication, session booking, real-time chat, and review gating to ensure trustworthy and effective mentorship.
 
 ## 🚀 Tech Stack
 
