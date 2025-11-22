@@ -1,67 +1,65 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+import dotenv from 'dotenv';
 
-const createTransporter = () => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    return {
-      sendMail: async (mailOptions: any) => {
-        const resetUrl = mailOptions.html.match(/href="([^"]*)"/)?.[1] || 'Not found';
-        console.log('Development mode - Reset URL:', resetUrl);
-        return { messageId: 'dev-mode-' + Date.now() };
-      }
-    };
-  }
+dotenv.config();
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
-  return transporter;
-};
+const EMAIL_FROM = process.env.EMAIL_FROM || 'Acadevmy <onboarding@resend.dev>';
+
+const getResetEmailTemplate = (resetUrl: string) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #111; text-align: center;">Reset Your Password</h2>
+    <p style="color: #555; font-size: 16px;">
+      You requested to reset your password for your Acadevmy account.
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${resetUrl}" 
+         style="background-color: #000; color: white; padding: 14px 28px; 
+                text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+        Reset Password
+      </a>
+    </div>
+    <p style="color: #555; font-size: 14px;">
+      Or copy and paste this link into your browser:
+      <br/>
+      <a href="${resetUrl}" style="color: #000; word-break: break-all;">${resetUrl}</a>
+    </p>
+    <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
+    <p style="color: #888; font-size: 12px; text-align: center;">
+      If you didn't request this, please ignore this email.
+    </p>
+  </div>
+`;
 
 export const sendPasswordResetEmail = async (email: string, resetUrl: string): Promise<void> => {
+  if (!resend) {
+    console.log('\n[DEV MODE] Email Simulator ----------------');
+    console.log(`To:   ${email}`);
+    console.log(`Link: ${resetUrl}`);
+    console.log('---------------------------------------------\n');
+    return;
+  }
+
   try {
-    const transporter = createTransporter();
+    const response = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: [email],
+      subject: 'Reset your Acadevmy password',
+      html: getResetEmailTemplate(resetUrl),
+    });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Password Reset Request - Acadevmy',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Password Reset Request</h2>
-          <p>You requested to reset your password for your Acadevmy account.</p>
-          <p>Click the button below to reset your password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" 
-               style="background-color: #000; color: white; padding: 12px 24px; 
-                      text-decoration: none; border-radius: 6px; display: inline-block;">
-              Reset Password
-            </a>
-          </div>
-          <p><strong>Or copy this link:</strong> ${resetUrl}</p>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">
-            Acadevmy - Learn. Build. Grow.
-          </p>
-        </div>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-  } catch (error: any) {
-    console.error('Email send failed:', error.message);
-
-    if (error.code === 'EAUTH') {
-      console.error('Authentication failed - verify 2FA and App Password settings');
+    if (response.error) {
+      console.error('[Resend API Error]:', response.error);
+      throw new Error(`Email provider error: ${response.error.message}`);
     }
 
-    throw new Error('Failed to send reset email');
+    console.log(`[Email Sent] ID: ${response.data?.id} | To: ${email}`);
+
+  } catch (error) {
+    console.error('[SendEmail Service Failed]:', error);
+    throw new Error('Failed to send password reset email. Please try again later.');
   }
 };
