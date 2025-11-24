@@ -16,6 +16,7 @@
 - MongoDB (Mongoose)
 - Socket.io (Real-time chat)
 - JWT Authentication
+- EmailJS (server-side email handling)
 
 ---
 
@@ -39,12 +40,16 @@ npm install
 
 Create a `.env` file in the `server/` directory with the following variables:
 ```
+NODE_ENV=development
 PORT=5000
-CLIENT_URL=http://localhost:5173
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_jwt_secret
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production_123
 JWT_EXPIRE=30d
-EMAIL_USER=your_email@gmail.com
+CLIENT_URL=http://localhost:5173
+EMAILJS_SERVICE_ID=your_service_id
+EMAILJS_TEMPLATE_ID=your_template_id
+EMAILJS_PUBLIC_KEY=your_public_key
+EMAILJS_PRIVATE_KEY=your_private_key
 ```
 
 Start the server:
