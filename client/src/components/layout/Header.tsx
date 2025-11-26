@@ -133,7 +133,7 @@ const Header = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: navItems.length * 0.1, duration: 0.3 }}
               >
-                <AuthButtons vertical />
+                <AuthButtons vertical className="space-y-2 py-2" />
               </motion.div>
             )}
           </motion.div>
