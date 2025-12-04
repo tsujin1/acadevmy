@@ -120,7 +120,7 @@ const UserMenu = () => {
     setShowNotifications(false);
     setIsOpen(false);
     if (notification.relatedId) {
-      navigate(`/profile?tab=reviews&highlightReview=${notification.relatedId}`);
+      navigate(`/mentor/${notification.relatedId}?tab=reviews`);
     }
   };
 
@@ -178,7 +178,18 @@ const UserMenu = () => {
   }, [user, fetchUserDetails]);
 
   const handleConversationClick = async (conversation: Conversation) => {
-    if (conversation.unreadCount > 0) await markConversationAsRead(conversation.id);
+    if (conversation.unreadCount > 0) {
+      await markConversationAsRead(conversation.id);
+    }
+    const relatedNotifications = notifications.filter(n => 
+      !n.isRead && (
+        n.relatedId === conversation.mentorId || 
+        n.title.includes(conversation.name)
+      )
+    );
+    relatedNotifications.forEach(n => {
+      markNotificationAsRead(n.id);
+    });
     const mentor: Mentor = {
       id: conversation.mentorId,
       name: conversation.name,
@@ -191,23 +202,40 @@ const UserMenu = () => {
     };
     openChat(mentor);
     setShowConversations(false);
+    setShowNotifications(false); 
   };
 
   useEffect(() => {
     if (!user) return;
-    const socket = io(API_BASE_URL, { auth: { token: getToken() } });
+    const socket = io(API_BASE_URL, {
+      auth: { token: getToken() }
+    });
     socketRef.current = socket;
-    
-    socket.emit('register_user', { userId: user._id, userType: user.role || 'user' });
-    
+    socket.emit('register_user', {
+      userId: user._id,
+      userType: user.role || 'user'
+    });
     socket.on('newNotification', (notification: Notification) => {
-      setNotifications(prev => prev.some(n => n.id === notification.id) ? prev : [notification, ...prev]);
+      setNotifications(prev => {
+        const exists = prev.some(n => n.id === notification.id);
+        return exists ? prev : [notification, ...prev];
+      });
     });
     socket.on('receive_message', () => {
       fetchConversations();
     });
-    return () => { socket.disconnect(); socketRef.current = null; };
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
   }, [user, fetchConversations]);
+
+  useEffect(() => {
+    if (user) {
+      fetchConversations();
+      fetchNotifications();
+    }
+  }, [user, fetchConversations, fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
