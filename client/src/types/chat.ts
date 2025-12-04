@@ -4,6 +4,7 @@ export interface Mentor {
   firstName?: string;
   lastName?: string;
   name: string;
+  role?: 'student' | 'mentor';
   title: string;
   company?: string;
   avatar?: string;

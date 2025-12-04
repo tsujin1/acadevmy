@@ -2,6 +2,7 @@ export interface Conversation {
   id: string;
   name: string;
   title: string;
+  role: 'student' | 'mentor';
   avatar?: string;
   lastMessage?: string;
   unreadCount: number;
@@ -30,6 +31,7 @@ export interface UserData {
     url?: string;
   };
   title?: string;
+  role: 'student' | 'mentor';
 }
 
 export type NotificationType = 'review' | 'booking' | 'system' | 'info';

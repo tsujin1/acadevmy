@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaTimes, FaPaperPlane, FaChevronLeft, FaCalendarPlus } from 'react-icons/fa';
 import { useChat } from '@/hooks/useChat';
 import { useSocket } from '@/hooks/useSocket';
@@ -168,11 +169,15 @@ const ChatBox = () => {
   const hasAvatar = Boolean(currentMentor.avatar) && !avatarError;
   const initials = currentMentor.name.split(' ').map(n => n[0]).join('');
 
+  const profilePath = currentMentor.role === 'student' 
+  ? `/student/${currentMentor.id}` 
+  : `/mentor/${currentMentor.id}`;
+
   return (
     <>
       {isChatOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={closeChat} />}
 
-      <div className={`fixed inset-0 md:inset-auto md:bottom-0 md:right-6 w-full md:w-[380px] h-full md:h-[600px] bg-white flex flex-col z-50 md:rounded-xl md:shadow-2xl md:border md:border-gray-200 overflow-hidden transition-all duration-300 ${isChatOpen ? 'translate-y-0 opacity-100 flex' : 'translate-y-8 opacity-0 pointer-events-none hidden'}`}>
+      <div className={`fixed inset-0 md:inset-auto md:bottom-0 md:right-6 w-full md:w-[380px] h-full md:h-[500px] md:max-h-[80vh] bg-white flex flex-col z-50 md:rounded-xl md:shadow-2xl md:border md:border-gray-200 overflow-hidden transition-all duration-300 ${isChatOpen ? 'translate-y-0 opacity-100 flex' : 'translate-y-8 opacity-0 pointer-events-none hidden'}`}>
         
         <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -191,8 +196,19 @@ const ChatBox = () => {
                 initials
               )}
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">{currentMentor.name}</h3>
+            <div className="flex flex-col">
+              <Link 
+                to={profilePath}
+                onClick={closeChat}
+                className="font-semibold text-gray-900 text-sm hover:underline hover:text-blue-600 transition-colors"
+              >
+                {currentMentor.name}
+              </Link>
+
+              <span className="text-xs text-gray-500">
+                {currentMentor.title || (currentMentor.role === 'student' ? 'Student' : 'Mentor')}
+              </span>
+
             </div>
           </div>
           <button onClick={closeChat} className="hidden md:block text-gray-500 hover:text-gray-900 transition p-1.5 hover:bg-gray-100 rounded-full">

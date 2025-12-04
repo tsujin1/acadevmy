@@ -39,6 +39,7 @@ const UserMenu = () => {
       const response = await fetch(`${API_BASE_URL}/api/users/${userId}`);
       if (response.ok) {
         const userData: UserData = await response.json();
+        
         let avatarUrl: string | undefined;
         if (userData.avatar) {
           if (typeof userData.avatar === 'string') {
@@ -50,16 +51,22 @@ const UserMenu = () => {
             }
           }
         }
+
+        const userRole = userData.role 
+          ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) 
+          : 'User';
+
         return {
           name: `${userData.firstName} ${userData.lastName}`,
-          title: userData.title || 'Mentor',
+          title: userData.title || userRole, 
+          role: userData.role,
           avatar: avatarUrl
         };
       }
     } catch (error) {
       console.error(error);
     }
-    return { name: `Mentor ${userId.substring(0, 6)}`, title: 'Mentor' };
+    return { name: `User ${userId.substring(0, 6)}`, title: 'User' };
   }, []);
 
   const fetchNotifications = useCallback(async () => {
@@ -175,6 +182,7 @@ const UserMenu = () => {
     const mentor: Mentor = {
       id: conversation.mentorId,
       name: conversation.name,
+      role: conversation.role,
       title: conversation.title,
       avatar: conversation.avatar,
       isAvailable: true,
@@ -189,7 +197,9 @@ const UserMenu = () => {
     if (!user) return;
     const socket = io(API_BASE_URL, { auth: { token: getToken() } });
     socketRef.current = socket;
-    socket.emit('register_user', { userId: user._id, userType: 'mentor' });
+    
+    socket.emit('register_user', { userId: user._id, userType: user.role || 'user' });
+    
     socket.on('newNotification', (notification: Notification) => {
       setNotifications(prev => prev.some(n => n.id === notification.id) ? prev : [notification, ...prev]);
     });
@@ -198,13 +208,6 @@ const UserMenu = () => {
     });
     return () => { socket.disconnect(); socketRef.current = null; };
   }, [user, fetchConversations]);
-
-  useEffect(() => {
-    if (user) {
-      fetchConversations();
-      fetchNotifications();
-    }
-  }, [user, fetchConversations, fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
