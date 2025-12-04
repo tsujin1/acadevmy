@@ -39,6 +39,7 @@ export type NotificationType = 'review' | 'booking' | 'system' | 'info';
 export interface Notification {
   id: string;
   recipientId: string;
+  senderId?: string;
   type: NotificationType;
   title: string;
   message: string;

@@ -116,11 +116,19 @@ const UserMenu = () => {
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.isRead) await markNotificationAsRead(notification.id);
+    if (!notification.isRead) {
+      await markNotificationAsRead(notification.id);
+    }
     setShowNotifications(false);
     setIsOpen(false);
-    if (notification.relatedId) {
-      navigate(`/mentor/${notification.relatedId}?tab=reviews`);
+    if (notification.type === 'review' && notification.relatedId) {
+      if (user?.role === 'student') {
+        navigate(`/mentor/${notification.relatedId}?tab=reviews`);
+      } else {
+        navigate(`/profile?tab=reviews&highlightReview=${notification.relatedId}`);
+      }
+    } else {
+      navigate('/profile');
     }
   };
 
