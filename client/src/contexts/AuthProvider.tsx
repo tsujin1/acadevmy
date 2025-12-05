@@ -26,25 +26,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      await authService.login({ email, password });
-      const userData = await authService.getProfile();
-      setUser(userData);
-    } finally {
-      setIsLoading(false);
-    }
+    await authService.login({ email, password });
+    const userData = await authService.getProfile();
+    setUser(userData);
   };
 
   const register = async (userData: { firstName: string; lastName: string; email: string; password: string; role: string }) => {
-    setIsLoading(true);
-    try {
-      await authService.register(userData);
-      const userDataFull = await authService.getProfile();
-      setUser(userDataFull);
-    } finally {
-      setIsLoading(false);
-    }
+    await authService.register(userData);
+    const userDataFull = await authService.getProfile();
+    setUser(userDataFull);
   };
 
   const logout = () => {
