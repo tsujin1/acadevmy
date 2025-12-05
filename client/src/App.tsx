@@ -2,22 +2,23 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SocketProvider from './contexts/SocketContext';
 import ChatProvider from './contexts/ChatProvider';
 import AuthProvider from './contexts/AuthProvider';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
-import Home from '@/pages/Home';
-import Mentors from '@/pages/Mentors';
-import MentorProfile from '@/pages/MentorProfile';
-import StudentProfile from '@/pages/StudentProfile';
-import Profile from '@/pages/Profile';
-import Settings from '@/pages/Settings';
-import Login from '@/pages/Login';
-import Signup from '@/pages/Signup';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import About from '@/pages/About';
-import Contact from '@/pages/Contact';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import ChatBox from '@/components/profile/ChatBox/ChatBox';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import Home from './pages/Home';
+import Mentors from './pages/Mentors';
+import MentorProfile from './pages/MentorProfile';
+import StudentProfile from './pages/StudentProfile';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import PublicRoute from './components/auth/PublicRoute';
+import ChatBox from './components/profile/ChatBox/ChatBox';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -33,23 +34,52 @@ function App() {
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
+                  
+                  {/* PUBLIC ONLY ROUTES */}
+                  <Route path="/login" element={
+                    <PublicRoute>
+                      <Login />
+                    </PublicRoute>
+                  } />
+                  <Route path="/signup" element={
+                    <PublicRoute>
+                      <Signup />
+                    </PublicRoute>
+                  } />
+                  <Route path="/forgot-password" element={
+                    <PublicRoute>
+                      <ForgotPassword />
+                    </PublicRoute>
+                  } />
+                  <Route path="/reset-password" element={
+                    <PublicRoute>
+                      <ResetPassword />
+                    </PublicRoute>
+                  } />
+
                   <Route path="/mentors" element={<Mentors />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
+                  
+                  {/* PROTECTED ROUTES */}
                   <Route path="/mentor/:id" element={
-                    <ProtectedRoute><MentorProfile /></ProtectedRoute>
+                    <ProtectedRoute>
+                      <MentorProfile />
+                    </ProtectedRoute>
                   } />
+                  
                   <Route path="/student/:id" element={<StudentProfile />} />
 
                   <Route path="/profile" element={
-                    <ProtectedRoute><Profile /></ProtectedRoute>
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
                   } />
+                  
                   <Route path="/profile/settings" element={
-                    <ProtectedRoute><Settings /></ProtectedRoute>
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
                   } />
 
                   <Route path="/settings" element={<Navigate to="/profile/settings" replace />} />
