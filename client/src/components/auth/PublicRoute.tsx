@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -7,6 +7,8 @@ interface PublicRouteProps {
 
 const PublicRoute = ({ children }: PublicRouteProps) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/';
 
   if (isLoading) {
     return (
@@ -17,10 +19,10 @@ const PublicRoute = ({ children }: PublicRouteProps) => {
   }
 
   if (user) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to={from} replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 export default PublicRoute;

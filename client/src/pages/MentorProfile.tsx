@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { userService } from '@/services/userService';
 import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
@@ -90,8 +90,10 @@ const MentorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
   const { openChat } = useChat();
+
 
   const [mentor, setMentor] = useState<Mentor | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -152,6 +154,10 @@ const MentorProfile = () => {
   };
 
   const handleContact = () => {
+    if (!currentUser) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
     if (mentor) {
       const chatMentor = {
         id: mentor.id,
