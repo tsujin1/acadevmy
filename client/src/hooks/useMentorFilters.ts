@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { userService } from '../services/userService';
+import axiosInstance from '../services/axiosInstance';
 import type { Mentor } from '@/types/mentor';
 import type { User } from '../services/authService';
-import { PRICE_RANGE } from '@/constants/filters';
 
 export interface MentorFilters {
   searchQuery: string;
@@ -11,15 +11,32 @@ export interface MentorFilters {
   minRating: number;
 }
 
+interface ExtendedUser extends User {
+  rating?: number;
+  reviews?: Mentor['reviews'];
+}
+
 const safeParseRate = (rate: string | number): number => {
   const numericRate = typeof rate === 'number' ? rate : parseInt(rate, 10);
   return isNaN(numericRate) ? 0 : Math.max(0, numericRate);
 };
 
 const userToMentorAdapter = (user: User): Mentor => {
+  const extendedUser = user as ExtendedUser;
   const experienceValue = user.experience ?? '0 year';
   const hourlyRateValue = String(user.hourlyRate ?? '0');
   const skillsArray = Array.isArray(user.skills) ? user.skills : [];
+
+  let rating = Number(extendedUser.rating) || 0;
+
+  if (extendedUser.reviews && extendedUser.reviews.length > 0) {
+    const totalRating = extendedUser.reviews.reduce((sum: number, review) => {
+      return sum + (Number(review.rating) || 0);
+    }, 0);
+    const calculatedAvg = totalRating / extendedUser.reviews.length;
+    const roundedAvg = Math.round(calculatedAvg * 10) / 10;
+    if (roundedAvg > 0) rating = roundedAvg;
+  }
 
   return {
     id: user._id,
@@ -29,8 +46,8 @@ const userToMentorAdapter = (user: User): Mentor => {
     experience: typeof experienceValue === 'number' ? `${experienceValue} ` : experienceValue,
     location: user.location || 'Not specified',
     hourlyRate: hourlyRateValue,
-    rating: 4.0,
-    reviewCount: 0,
+    rating: rating,
+    reviewCount: extendedUser.reviews?.length || 0,
     skills: skillsArray,
     bio: user.bio || 'No bio available',
     about: user.about || user.bio || 'No about information available',
@@ -38,7 +55,7 @@ const userToMentorAdapter = (user: User): Mentor => {
     email: user.email,
     linkedin: user.linkedin || '#',
     website: user.website || '#',
-    reviews: [],
+    reviews: extendedUser.reviews || [],
     image: user.avatar?.url || undefined,
     github: '',
     twitter: ''
@@ -53,10 +70,28 @@ export const useMentorFilters = () => {
     try {
       setLoading(true);
       const users = await userService.getMentors();
-      const adaptedMentors = users.map(userToMentorAdapter);
-      setMentors(adaptedMentors);
+
+      const mentorsWithStats = await Promise.all(
+        users.map(async (user) => {
+          const baseMentor = userToMentorAdapter(user);
+          try {
+            const response = await axiosInstance.get(`/reviews/mentor/${user._id}`);
+            const stats = response.data.stats;
+
+            return {
+              ...baseMentor,
+              rating: stats?.averageRating || baseMentor.rating,
+              reviewCount: stats?.totalReviews || baseMentor.reviewCount
+            };
+          } catch {
+            return baseMentor;
+          }
+        })
+      );
+
+      setMentors(mentorsWithStats);
     } catch (error) {
-      console.error('Error fetching mentors:', error);
+      console.error(error);
       setMentors([]);
     } finally {
       setLoading(false);
@@ -73,34 +108,28 @@ export const useMentorFilters = () => {
     return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, [fetchMentors]);
 
-  const dynamicPriceRange = useMemo((): [number, number] => {
-    if (mentors.length === 0) return [PRICE_RANGE.MIN, PRICE_RANGE.MAX];
-
+  const globalMaxPrice = useMemo(() => {
+    if (mentors.length === 0) return 100;
     const rates = mentors.map(m => safeParseRate(m.hourlyRate));
-    const minRate = Math.floor(Math.min(...rates));
-    const maxRate = Math.ceil(Math.max(...rates));
-
-    return [
-      Math.max(PRICE_RANGE.MIN, minRate - 10),
-      Math.max(PRICE_RANGE.MAX, maxRate + 10)
-    ];
+    const max = Math.max(...rates);
+    return Math.ceil(max / 10) * 10;
   }, [mentors]);
 
   const [filters, setFilters] = useState<MentorFilters>({
     searchQuery: '',
     selectedSkills: [],
-    priceRange: dynamicPriceRange,
+    priceRange: [0, globalMaxPrice],
     minRating: 0,
   });
 
   useEffect(() => {
-    if (mentors.length > 0) {
-      setFilters(prev => ({
-        ...prev,
-        priceRange: dynamicPriceRange,
-      }));
-    }
-  }, [dynamicPriceRange, mentors.length]);
+    setFilters(prev => {
+      if (prev.priceRange[1] === 0 || prev.priceRange[1] < globalMaxPrice) {
+        return { ...prev, priceRange: [0, globalMaxPrice] };
+      }
+      return prev;
+    });
+  }, [globalMaxPrice]);
 
   const allSkills = useMemo(() => {
     const skills = new Set<string>();
@@ -113,7 +142,6 @@ export const useMentorFilters = () => {
   const filteredMentors = useMemo(() => {
     return mentors.filter(mentor => {
       const searchLower = filters.searchQuery.toLowerCase();
-
       const matchesSearch = !filters.searchQuery ||
         mentor.name.toLowerCase().includes(searchLower) ||
         mentor.title.toLowerCase().includes(searchLower) ||
@@ -125,16 +153,17 @@ export const useMentorFilters = () => {
 
       const numericRate = safeParseRate(mentor.hourlyRate);
       const [minPrice, maxPrice] = filters.priceRange;
-
-      const matchesPrice = maxPrice >= PRICE_RANGE.MAX
+      const matchesPrice = maxPrice >= globalMaxPrice
         ? true
         : numericRate >= minPrice && numericRate <= maxPrice;
 
-      const matchesRating = mentor.rating >= filters.minRating;
+      const matchesRating = filters.minRating === 0
+        ? true
+        : mentor.rating >= filters.minRating;
 
       return matchesSearch && matchesSkills && matchesPrice && matchesRating;
     });
-  }, [mentors, filters]);
+  }, [mentors, filters, globalMaxPrice]);
 
   const updateFilters = useCallback((updates: Partial<MentorFilters>) => {
     setFilters(prev => ({ ...prev, ...updates }));
@@ -144,10 +173,10 @@ export const useMentorFilters = () => {
     setFilters({
       searchQuery: '',
       selectedSkills: [],
-      priceRange: dynamicPriceRange,
+      priceRange: [0, globalMaxPrice],
       minRating: 0,
     });
-  }, [dynamicPriceRange]);
+  }, [globalMaxPrice]);
 
   const toggleSkill = useCallback((skill: string) => {
     setFilters(prev => ({
@@ -164,6 +193,7 @@ export const useMentorFilters = () => {
     allSkills,
     mentors,
     loading,
+    globalMaxPrice,
     updateFilters,
     clearFilters,
     toggleSkill,

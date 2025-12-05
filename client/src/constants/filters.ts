@@ -9,4 +9,5 @@ export const RATING_OPTIONS = [
   { value: 4.0, label: '4.0+ stars' },
   { value: 4.5, label: '4.5+ stars' },
   { value: 4.8, label: '4.8+ stars' },
-] as const;
+  { value: 5.0, label: '5.0 stars' },
+];

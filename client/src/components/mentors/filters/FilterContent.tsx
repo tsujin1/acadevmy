@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { memo, useCallback } from 'react';
 import type { MentorFilters as MentorFiltersType } from '@/hooks/useMentorFilters';
-import { PRICE_RANGE, RATING_OPTIONS } from '@/constants/filters';
+import { RATING_OPTIONS } from '@/constants/filters'; 
 import FilterSection from './FilterSection';
 import SkillCheckbox from './SkillCheckbox';
 import { filterContentVariants } from './variants';
@@ -9,35 +9,39 @@ import { filterContentVariants } from './variants';
 interface FilterContentProps {
   filters: MentorFiltersType;
   allSkills: string[];
+  globalMaxPrice: number; 
   onToggleSkill: (skill: string) => void;
   onClearFilters: () => void;
-  onPriceChange: (value: string) => void;
-  onRatingChange: (value: string) => void;
+  onPriceChange: (value: number) => void; 
+  onRatingChange: (value: number) => void;
 }
-
-const formatPriceDisplay = (price: number): string => 
-  price >= PRICE_RANGE.MAX ? 'Any price' : `Up to $${price}`;
-
-const getSliderValue = (priceRange: [number, number]): number =>
-  Math.min(priceRange[1], PRICE_RANGE.MAX);
 
 const FilterContent = memo(({
   filters,
   allSkills,
+  globalMaxPrice,
   onToggleSkill,
   onClearFilters,
   onPriceChange,
   onRatingChange,
 }: FilterContentProps) => {
+
   const handlePriceInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onPriceChange(e.target.value);
+    const newVal = parseInt(e.target.value, 10);
+    onPriceChange(newVal);
   }, [onPriceChange]);
 
   const handleRatingSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onRatingChange(e.target.value);
+    const value = Number(e.target.value);
+    onRatingChange(value);
   }, [onRatingChange]);
 
-  const currentPriceLabel = formatPriceDisplay(filters.priceRange[1]);
+  const currentPrice = filters.priceRange[1];
+  const isAtMaxPrice = currentPrice >= globalMaxPrice;
+  
+  const currentPriceLabel = isAtMaxPrice 
+    ? 'Any price' 
+    : `Up to $${currentPrice}`;
 
   return (
     <motion.div {...filterContentVariants}>
@@ -55,15 +59,19 @@ const FilterContent = memo(({
 
       <FilterSection title="Skills">
         <div className="space-y-2 max-h-48 overflow-y-auto">
-          {allSkills.map((skill, index) => (
-            <SkillCheckbox
-              key={skill}
-              skill={skill}
-              isChecked={filters.selectedSkills.includes(skill)}
-              onToggle={onToggleSkill}
-              index={index}
-            />
-          ))}
+          {allSkills.length > 0 ? (
+            allSkills.map((skill, index) => (
+              <SkillCheckbox
+                key={skill}
+                skill={skill}
+                isChecked={filters.selectedSkills.includes(skill)}
+                onToggle={onToggleSkill}
+                index={index}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 italic">No skills available</p>
+          )}
         </div>
       </FilterSection>
 
@@ -71,10 +79,10 @@ const FilterContent = memo(({
         <div className="space-y-3">
           <input
             type="range"
-            min={PRICE_RANGE.MIN}
-            max={PRICE_RANGE.MAX}
-            step={PRICE_RANGE.STEP}
-            value={getSliderValue(filters.priceRange)}
+            min={0}
+            max={globalMaxPrice}
+            step={5} 
+            value={currentPrice}
             onChange={handlePriceInputChange}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
           />
@@ -84,7 +92,7 @@ const FilterContent = memo(({
               {currentPriceLabel}
             </span>
           </div>
-          {filters.priceRange[1] >= PRICE_RANGE.MAX && (
+          {isAtMaxPrice && (
             <p className="text-xs text-gray-500 text-center">
               Showing all mentors regardless of rate
             </p>

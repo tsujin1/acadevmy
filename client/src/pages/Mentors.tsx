@@ -13,6 +13,7 @@ const Mentors = () => {
     filteredMentors,
     allSkills,
     loading,
+    globalMaxPrice,
     updateFilters,
     clearFilters,
     toggleSkill,
@@ -45,6 +46,7 @@ const Mentors = () => {
             <MentorFilters
               filters={filters}
               allSkills={allSkills}
+              globalMaxPrice={globalMaxPrice}
               onFiltersChange={updateFilters}
               onToggleSkill={toggleSkill}
               onClearFilters={clearFilters}

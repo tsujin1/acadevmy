@@ -2,12 +2,13 @@ import { useState, useCallback, memo } from 'react';
 import { FaFilter } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MentorFilters as MentorFiltersType } from '@/hooks/useMentorFilters';
-import { PRICE_RANGE } from '@/constants/filters';
+import { PRICE_RANGE } from '@/constants/filters'; 
 import FilterContent from './FilterContent';
 
 interface MentorFiltersProps {
   filters: MentorFiltersType;
   allSkills: string[];
+  globalMaxPrice: number; 
   onFiltersChange: (updates: Partial<MentorFiltersType>) => void;
   onToggleSkill: (skill: string) => void;
   onClearFilters: () => void;
@@ -16,21 +17,21 @@ interface MentorFiltersProps {
 const MentorFilters = memo(({
   filters,
   allSkills,
+  globalMaxPrice, 
   onFiltersChange,
   onToggleSkill,
   onClearFilters,
 }: MentorFiltersProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handlePriceChange = useCallback((value: string) => {
-    const priceValue = parseInt(value, 10) || PRICE_RANGE.MIN;
+  const handlePriceChange = useCallback((value: number) => {
     onFiltersChange({ 
-      priceRange: [PRICE_RANGE.MIN, priceValue] 
+      priceRange: [PRICE_RANGE.MIN, value] 
     });
   }, [onFiltersChange]);
 
-  const handleRatingChange = useCallback((value: string) => {
-    onFiltersChange({ minRating: parseFloat(value) || 0 });
+  const handleRatingChange = useCallback((value: number) => {
+    onFiltersChange({ minRating: value });
   }, [onFiltersChange]);
 
   const toggleMobileMenu = useCallback(() => {
@@ -43,6 +44,7 @@ const MentorFilters = memo(({
         <FilterContent
           filters={filters}
           allSkills={allSkills}
+          globalMaxPrice={globalMaxPrice}
           onToggleSkill={onToggleSkill}
           onClearFilters={onClearFilters}
           onPriceChange={handlePriceChange}
@@ -73,6 +75,7 @@ const MentorFilters = memo(({
               <FilterContent
                 filters={filters}
                 allSkills={allSkills}
+                globalMaxPrice={globalMaxPrice} 
                 onToggleSkill={onToggleSkill}
                 onClearFilters={onClearFilters}
                 onPriceChange={handlePriceChange}
