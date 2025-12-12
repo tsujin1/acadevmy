@@ -1,146 +1,68 @@
-import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { PiGraduationCapBold, PiListBold, PiXBold } from 'react-icons/pi';
-import AuthButtons from '@/components/ui/AuthButtons/AuthButtons';
-import  UserMenu  from '@/components/ui/UserMenu/UserMenu';
-import { useAuth } from '@/hooks/useAuth';
+import { Link, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { MobileNav } from './MobileNav';
+import { GraduationCap } from 'lucide-react';
 
-interface NavItem {
-  name: string;
-  path: string;
-}
+export const Header = () => {
+  const location = useLocation();
 
-const navItems: NavItem[] = [
-  { name: 'Home', path: '/' },
-  { name: 'All Mentors', path: '/mentors' },
-  { name: 'About', path: '/about' },
-  { name: 'Contact', path: '/contact' },
-];
+  const navItems = [
+    { path: '/', label: 'Home' },
+    { path: '/mentors', label: 'All Mentors' },
+    { path: '/about', label: 'About' },
+    { path: '/contact', label: 'Contact Us' },
+  ];
 
-const Header = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Link to="/" className="flex items-center space-x-2">
-            <PiGraduationCapBold className="h-6 w-6 text-black" />
-            <span className="text-2xl font-bold text-black">acadevmy</span>
-          </Link>
-        </motion.div>
+    <header className="sticky top-0 z-50 w-full border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="flex w-full h-16 items-center justify-between px-4">
 
-        <nav className="hidden md:flex space-x-6">
-          {navItems.map((item, index) => (
-            <motion.div
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center gap-2 group transition-opacity hover:opacity-90">
+          {/* Logo Icon Container */}
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          {/* Text Logo */}
+          <span className="hidden md:inline text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+            acadevmy
+          </span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          {navItems.map((item) => (
+            <Link
               key={item.path}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
+              to={item.path}
+              className={`text-sm font-medium transition-colors hover:text-blue-600 ${isActive(item.path)
+                ? 'text-blue-600 font-semibold'
+                : 'text-slate-600'
+                }`}
             >
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `transition-colors ${
-                    isActive ? 'text-black font-medium' : 'text-gray-600 hover:text-black'
-                  }`
-                }
-              >
-                {item.name}
-              </NavLink>
-            </motion.div>
+              {item.label}
+            </Link>
           ))}
         </nav>
 
-        <div className="flex items-center space-x-4">
-          {user ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
+        {/* Right Side Actions */}
+        <div className="flex items-center gap-4">
+          {/* Desktop Login Button */}
+          <div className="hidden md:block">
+            <Button
+              asChild
+              className="bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-all hover:shadow-md"
             >
-              <UserMenu />
-            </motion.div>
-          ) : (
-            <div className="hidden md:block">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <AuthButtons />
-              </motion.div>
-            </div>
-          )}
-          
-          <motion.button
-            className="md:hidden text-black"
-            onClick={() => setIsOpen(!isOpen)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {isOpen ? <PiXBold className="h-6 w-6" /> : <PiListBold className="h-6 w-6" />}
-          </motion.button>
+              <Link to="/login">Login</Link>
+            </Button>
+          </div>
+
+          {/* Mobile Menu */}
+          <MobileNav />
         </div>
       </div>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="md:hidden bg-white shadow-md px-4 flex flex-col space-y-4 overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            {navItems.map((item, index) => (
-              <motion.div
-                key={item.path}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.3 }}
-              >
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive ? 'text-black font-medium' : 'text-gray-600'
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.name}
-                </NavLink>
-              </motion.div>
-            ))}
-            {user ? (
-              <motion.div 
-                className="pt-2 border-t border-gray-200"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navItems.length * 0.1, duration: 0.3 }}
-              >
-                <p className="text-sm text-gray-600 mb-2">Logged in as {user.firstName}</p>
-                <Link to="/profile" className="block py-2 text-gray-600">Profile</Link>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navItems.length * 0.1, duration: 0.3 }}
-              >
-                <AuthButtons vertical className="space-y-2 py-2" />
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 };
-
-export default Header;
