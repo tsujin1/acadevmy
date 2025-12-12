@@ -144,3 +144,71 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error while updating password' });
   }
 };
+
+export const getRelatedMentors = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const limit = parseInt(req.query.limit as string) || 6;
+
+    const currentMentor = await User.findById(id).select('-password');
+    if (!currentMentor) {
+      return res.status(404).json({ message: 'Mentor not found' });
+    }
+
+    const currentSkills = currentMentor.skills || [];
+    const currentCompany = currentMentor.company || '';
+    const currentLocation = currentMentor.location || '';
+
+    // Find mentors with matching criteria
+    const relatedMentors = await User.find({
+      role: 'mentor',
+      _id: { $ne: id }, // Exclude current mentor
+      $or: [
+        // Match by skills (at least one common skill)
+        ...(currentSkills.length > 0 ? [{ skills: { $in: currentSkills } }] : []),
+        // Match by company
+        ...(currentCompany ? [{ company: currentCompany }] : []),
+        // Match by location
+        ...(currentLocation ? [{ location: currentLocation }] : [])
+      ]
+    })
+      .select('-password')
+      .limit(limit);
+
+    // Sort by relevance: prioritize mentors with more matching criteria
+    const scoredMentors = relatedMentors.map(mentor => {
+      let score = 0;
+      const mentorSkills = mentor.skills || [];
+      
+      // Count matching skills
+      const matchingSkills = currentSkills.filter(skill => 
+        mentorSkills.some((ms: string) => ms.toLowerCase() === skill.toLowerCase())
+      );
+      score += matchingSkills.length * 3; // Skills are weighted higher
+      
+      // Company match
+      if (currentCompany && mentor.company && 
+          mentor.company.toLowerCase() === currentCompany.toLowerCase()) {
+        score += 2;
+      }
+      
+      // Location match
+      if (currentLocation && mentor.location && 
+          mentor.location.toLowerCase() === currentLocation.toLowerCase()) {
+        score += 1;
+      }
+      
+      return { mentor, score };
+    });
+
+    // Sort by score (descending) and return formatted mentors
+    const sortedMentors = scoredMentors
+      .sort((a, b) => b.score - a.score)
+      .map(item => formatUserResponse(item.mentor));
+
+    res.json(sortedMentors);
+  } catch (error) {
+    console.error('Get related mentors error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

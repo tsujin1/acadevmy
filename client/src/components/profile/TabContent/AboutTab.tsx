@@ -52,14 +52,14 @@ const AboutTab = ({
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">
           About {user?.firstName}
         </h2>
 
         {isEditable && !isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center justify-center sm:justify-start gap-2 cursor-pointer w-full sm:w-auto"
+            className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center sm:justify-start gap-2 w-full sm:w-auto"
           >
             <FaEdit size={14} />
             Edit About
@@ -68,20 +68,20 @@ const AboutTab = ({
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
           <p className="text-red-600 text-sm sm:text-base">{error}</p>
         </div>
       )}
 
       <div className="max-w-4xl">
         {isEditing ? (
-          <div className="space-y-4 sm:space-y-5 animate-fade-in">
+          <div className="space-y-4 sm:space-y-5">
             <textarea
               value={aboutText}
               onChange={(e) => setAboutText(e.target.value)}
               rows={10}
               disabled={loading}
-              className="w-full px-4 py-3 sm:px-5 sm:py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none text-gray-700 leading-relaxed text-base sm:text-lg bg-white"
+              className="w-full px-4 py-3 sm:px-5 sm:py-4 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 resize-none text-slate-900 leading-relaxed text-base sm:text-lg bg-white placeholder-slate-400 transition-all"
               placeholder="Tell your story... Share your background, experience, and what makes you unique."
             />
             
@@ -89,7 +89,7 @@ const AboutTab = ({
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="px-5 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+                className="px-5 py-2.5 sm:py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed w-full sm:w-auto shadow-sm"
               >
                 <FaSave size={14} />
                 {loading ? 'Saving...' : 'Save Changes'}
@@ -97,7 +97,7 @@ const AboutTab = ({
               <button
                 onClick={handleCancel}
                 disabled={loading}
-                className="px-5 py-2.5 sm:py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-100 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+                className="px-5 py-2.5 sm:py-3 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:bg-slate-100 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 <FaTimes size={14} />
                 Cancel
@@ -105,11 +105,11 @@ const AboutTab = ({
             </div>
           </div>
         ) : (
-          <div className="text-gray-700 whitespace-pre-line leading-relaxed space-y-4 text-base sm:text-lg">
+          <div className="text-slate-700 whitespace-pre-line leading-relaxed space-y-4 text-base sm:text-lg">
             {aboutText ? (
               aboutText
             ) : (
-              <p className="text-gray-500 italic">
+              <p className="text-slate-500 italic">
                 {isEditable 
                   ? "You haven't written a bio yet. Click 'Edit About' to add one." 
                   : "No about information provided."}

@@ -115,6 +115,23 @@ io.on('connection', (socket) => {
     try {
       const roomId = createRoomId(data.mentorId, data.userId);
 
+      // Ensure both users are in the room
+      socket.join(roomId);
+      const mentorSocketId = userConnections.get(data.mentorId);
+      if (mentorSocketId) {
+        const mentorSocket = io.sockets.sockets.get(mentorSocketId);
+        if (mentorSocket) {
+          mentorSocket.join(roomId);
+        }
+      }
+      const studentSocketId = userConnections.get(data.userId);
+      if (studentSocketId) {
+        const studentSocket = io.sockets.sockets.get(studentSocketId);
+        if (studentSocket) {
+          studentSocket.join(roomId);
+        }
+      }
+
       const savedMessage = await saveMessageToDB({
         roomId,
         senderId: data.userId,
@@ -140,8 +157,37 @@ io.on('connection', (socket) => {
 
       io.to(roomId).emit('receive_message', messageData);
 
-      const mentorSocketId = userConnections.get(data.mentorId);
-      if (!mentorSocketId || !io.sockets.sockets.get(mentorSocketId)) {
+      // Create notification for mentor if message type is booking
+      if (data.type === 'booking' && data.booking) {
+        const student = await User.findById(data.userId);
+        const studentName = student ? `${student.firstName} ${student.lastName}` : 'A student';
+        
+        const notification = await Notification.create({
+          recipient: data.mentorId,
+          sender: data.userId,
+          type: 'booking',
+          title: 'New Session Request',
+          message: `${studentName} sent you a new session request`,
+          isRead: false,
+          relatedId: savedMessage._id
+        });
+
+        io.to(data.mentorId).emit('newNotification', {
+          id: notification._id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          createdAt: notification.createdAt,
+          isRead: false,
+          relatedId: (savedMessage._id as any).toString(),
+          senderAvatar: (student as any)?.avatar?.url || (student as any)?.avatar
+        });
+      }
+      // Note: Text messages don't create notifications - they update conversations instead
+
+      // Check if mentor is online, if not, notify sender that message is queued
+      const mentorSocketIdCheck = userConnections.get(data.mentorId);
+      if (!mentorSocketIdCheck || !io.sockets.sockets.get(mentorSocketIdCheck)) {
         socket.emit('message_queued', { messageId: savedMessage._id, recipient: data.mentorId });
       }
     } catch (error) {
@@ -152,6 +198,23 @@ io.on('connection', (socket) => {
   socket.on('mentor_reply', async (data) => {
     try {
       const roomId = createRoomId(data.mentorId, data.userId);
+
+      // Ensure both users are in the room
+      socket.join(roomId);
+      const mentorSocketId = userConnections.get(data.mentorId);
+      if (mentorSocketId) {
+        const mentorSocket = io.sockets.sockets.get(mentorSocketId);
+        if (mentorSocket) {
+          mentorSocket.join(roomId);
+        }
+      }
+      const studentSocketId = userConnections.get(data.userId);
+      if (studentSocketId) {
+        const studentSocket = io.sockets.sockets.get(studentSocketId);
+        if (studentSocket) {
+          studentSocket.join(roomId);
+        }
+      }
 
       const savedMessage = await saveMessageToDB({
         roomId,
@@ -177,6 +240,7 @@ io.on('connection', (socket) => {
       };
 
       io.to(roomId).emit('receive_message', messageData);
+      // Note: Text messages don't create notifications - they update conversations instead
 
       const userSocketId = userConnections.get(data.userId);
       if (!userSocketId || !io.sockets.sockets.get(userSocketId)) {
@@ -209,13 +273,61 @@ io.on('connection', (socket) => {
           booking: message.booking
         });
 
-        if (data.status === 'completed') {
-          const studentId = message.senderId;
-          const mentorId = message.roomId.replace(`private_`, '').replace(studentId, '').replace('_', '');
+        // Extract student and mentor IDs from roomId
+        const roomParts = message.roomId.replace('private_', '').split('_');
+        const studentId = message.senderId;
+        const mentorId = roomParts[0] === studentId ? roomParts[1] : roomParts[0];
 
-          const mentor = await User.findById(mentorId);
-          const mentorName = mentor ? `${mentor.firstName} ${mentor.lastName}` : 'Your Mentor';
+        const mentor = await User.findById(mentorId);
+        const student = await User.findById(studentId);
+        const mentorName = mentor ? `${mentor.firstName} ${mentor.lastName}` : 'Your Mentor';
+        const studentName = student ? `${student.firstName} ${student.lastName}` : 'A student';
 
+        if (data.status === 'accepted') {
+          // Notify student that booking was accepted
+          const notification = await Notification.create({
+            recipient: studentId,
+            sender: mentorId,
+            type: 'booking',
+            title: 'Session Request Accepted',
+            message: `${mentorName} accepted your session request!`,
+            isRead: false,
+            relatedId: message._id
+          });
+
+          io.to(studentId).emit('newNotification', {
+            id: notification._id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            createdAt: notification.createdAt,
+            isRead: false,
+            relatedId: (message._id as any).toString(),
+            senderAvatar: (mentor as any)?.avatar?.url || (mentor as any)?.avatar
+          });
+        } else if (data.status === 'declined') {
+          // Notify student that booking was declined
+          const notification = await Notification.create({
+            recipient: studentId,
+            sender: mentorId,
+            type: 'booking',
+            title: 'Session Request Declined',
+            message: `${mentorName} declined your session request.`,
+            isRead: false,
+            relatedId: message._id
+          });
+
+          io.to(studentId).emit('newNotification', {
+            id: notification._id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            createdAt: notification.createdAt,
+            isRead: false,
+            relatedId: (message._id as any).toString(),
+            senderAvatar: (mentor as any)?.avatar?.url || (mentor as any)?.avatar
+          });
+        } else if (data.status === 'completed') {
           const thankYouMessage = await saveMessageToDB({
             roomId: message.roomId,
             senderId: mentorId,

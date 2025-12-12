@@ -15,14 +15,14 @@ interface ProfileInfoProps {
 }
 
 const ProfileInfo = ({ user, formData, isEditing, onChange }: ProfileInfoProps) => {
-  const inputClasses = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent";
-  const inlineInputClasses = "bg-transparent outline-none min-w-32";
-  const infoItemClass = "flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg";
+  const inputClasses = "w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 bg-white text-slate-900 placeholder-slate-400 transition-all";
+  const inlineInputClasses = "bg-transparent outline-none min-w-32 text-slate-900 placeholder-slate-400";
+  const infoItemClass = "flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200";
 
   return (
-    <div className="flex-1 min-w-0 space-y-3">
+    <div className="flex-1 min-w-0 space-y-3 sm:space-y-4">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-2 sm:mb-3 tracking-tight">
           {user?.firstName} {user?.lastName}
         </h1>
         
@@ -36,15 +36,15 @@ const ProfileInfo = ({ user, formData, isEditing, onChange }: ProfileInfoProps) 
             placeholder="e.g., Software Engineer, Product Manager"
           />
         ) : (
-          <p className="text-xl text-gray-600 font-medium">{formData.title}</p>
+          <p className="text-lg sm:text-xl text-slate-700 font-medium">{formData.title}</p>
         )}
       </div>
       
-      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
         {isEditing ? (
           <>
-            <div className={`${infoItemClass} border border-gray-200`}>
-              <FaBriefcase size={13} className="text-gray-400" />
+            <div className={infoItemClass}>
+              <FaBriefcase size={14} className="text-slate-500 shrink-0" />
               <input
                 type="text"
                 name="company"
@@ -54,8 +54,8 @@ const ProfileInfo = ({ user, formData, isEditing, onChange }: ProfileInfoProps) 
                 placeholder="Company"
               />
             </div>
-            <div className={`${infoItemClass} border border-gray-200`}>
-              <FaCalendarAlt size={13} className="text-gray-400" />
+            <div className={infoItemClass}>
+              <FaCalendarAlt size={14} className="text-slate-500 shrink-0" />
               <input
                 type="text"
                 name="experience"
@@ -65,8 +65,8 @@ const ProfileInfo = ({ user, formData, isEditing, onChange }: ProfileInfoProps) 
                 placeholder="Experience"
               />
             </div>
-            <div className={`${infoItemClass} border border-gray-200`}>
-              <FaMapMarkerAlt size={13} className="text-gray-400" />
+            <div className={infoItemClass}>
+              <FaMapMarkerAlt size={14} className="text-slate-500 shrink-0" />
               <input
                 type="text"
                 name="location"
@@ -80,21 +80,21 @@ const ProfileInfo = ({ user, formData, isEditing, onChange }: ProfileInfoProps) 
         ) : (
           <>
             {formData.company && (
-              <div className={infoItemClass}>
-                <FaBriefcase size={13} className="text-gray-400" />
-                <span>{formData.company}</span>
+              <div className={`${infoItemClass} hover:bg-slate-100 transition-colors`}>
+                <FaBriefcase size={14} className="text-slate-500 shrink-0" />
+                <span className="text-slate-700">{formData.company}</span>
               </div>
             )}
             {formData.experience && (
-              <div className={infoItemClass}>
-                <FaCalendarAlt size={13} className="text-gray-400" />
-                <span>{formData.experience} years experience</span>
+              <div className={`${infoItemClass} hover:bg-slate-100 transition-colors`}>
+                <FaCalendarAlt size={14} className="text-slate-500 shrink-0" />
+                <span className="text-slate-700">{formData.experience} years experience</span>
               </div>
             )}
             {formData.location && (
-              <div className={infoItemClass}>
-                <FaMapMarkerAlt size={13} className="text-gray-400" />
-                <span>{formData.location}</span>
+              <div className={`${infoItemClass} hover:bg-slate-100 transition-colors`}>
+                <FaMapMarkerAlt size={14} className="text-slate-500 shrink-0" />
+                <span className="text-slate-700">{formData.location}</span>
               </div>
             )}
           </>

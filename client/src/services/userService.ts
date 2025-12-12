@@ -53,5 +53,12 @@ export const userService = {
     });
 
     return response.data;
+  },
+
+  async getRelatedMentors(mentorId: string, limit?: number): Promise<User[]> {
+    const response = await api.get<User[]>(`/users/${mentorId}/related`, {
+      params: limit ? { limit } : undefined
+    });
+    return response.data;
   }
 };

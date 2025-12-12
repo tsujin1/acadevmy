@@ -6,7 +6,8 @@ import {
   updateProfile,
   getCurrentProfile,
   uploadAvatar,
-  changePassword
+  changePassword,
+  getRelatedMentors
 } from '../controllers/userController';
 import { protect } from '../middleware/auth';
 
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.get('/mentors', getMentors);
 router.get('/students', getStudents);
+router.get('/:id/related', getRelatedMentors);
 router.get('/:id', getUserById);
 
 router.use(protect);

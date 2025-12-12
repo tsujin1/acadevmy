@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import { Server as SocketIOServer } from 'socket.io';
 import Review from '../models/Review';
 import User from '../models/User';
 import Notification from '../models/Notification';
@@ -48,6 +49,21 @@ export const createReview = async (req: AuthRequest, res: Response) => {
     });
 
     await notification.save();
+
+    // Emit real-time notification to mentor
+    const io = req.app.get('io') as SocketIOServer;
+    if (io) {
+      io.to(mentorId.toString()).emit('newNotification', {
+        id: notification._id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        createdAt: notification.createdAt,
+        isRead: notification.isRead,
+        relatedId: reviewId,
+        senderAvatar: (user as any)?.avatar?.url || (user as any)?.avatar
+      });
+    }
 
     res.status(201).json(savedReview);
   } catch (error) {

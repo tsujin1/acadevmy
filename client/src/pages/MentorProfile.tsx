@@ -10,6 +10,7 @@ import ProfileTabs from '@/components/profile/ProfileTabs/ProfileTabs';
 import ReviewsTab from '@/components/profile/TabContent/ReviewsTab';
 import AboutTab from '@/components/profile/TabContent/AboutTab';
 import ContactLinksTab from '@/components/profile/TabContent/ContactLinksTab';
+import RelatedMentors from '@/components/profile/RelatedMentors';
 
 interface UserWithStats extends User {
   rating?: number;
@@ -203,16 +204,23 @@ const MentorProfile = () => {
         onTabChange={handleTabChange}
       />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeTab === 'about' && (
-          <AboutTab user={user} isEditable={false} />
-        )}
-        {activeTab === 'reviews' && (
-          <ReviewsTab mentorId={mentor.id} />
-        )}
-        {activeTab === 'contact' && (
-          <ContactLinksTab user={user} isEditable={false} />
-        )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {activeTab === 'about' && (
+              <AboutTab user={user} isEditable={false} />
+            )}
+            {activeTab === 'reviews' && (
+              <ReviewsTab mentorId={mentor.id} />
+            )}
+            {activeTab === 'contact' && (
+              <ContactLinksTab user={user} isEditable={false} />
+            )}
+          </div>
+          <div className="lg:col-span-1">
+            <RelatedMentors currentMentorId={mentor.id} />
+          </div>
+        </div>
       </div>
     </div>
   );

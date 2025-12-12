@@ -245,3 +245,18 @@ export const getUserConversations = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteConversation = async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+    await Message.deleteMany({ roomId });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete conversation',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};

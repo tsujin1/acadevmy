@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { userService } from '../../../services/userService';
 import type { User } from '../../../services/authService';
 import { useProfileForm } from '../../../hooks/useProfileForm';
@@ -110,7 +111,7 @@ const ProfileHeader = ({ user, onUpdate, onContact }: ProfileHeaderProps) => {
 
             <div className="flex-1 min-w-0 w-full">
               <div className="mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-4">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 sm:gap-6 mb-4">
                   <ProfileInfo
                     user={user}
                     formData={formData}
@@ -128,6 +129,7 @@ const ProfileHeader = ({ user, onUpdate, onContact }: ProfileHeaderProps) => {
                     onCancel={safeHandler(handleCancel)}
                     onHourlyRateChange={safeHandler(handleChange)}
                     readOnly={readOnly}
+                    showEditButton={false}
                   />
                 </div>
               </div>
@@ -148,6 +150,41 @@ const ProfileHeader = ({ user, onUpdate, onContact }: ProfileHeaderProps) => {
                 readOnly={readOnly}
                 onContact={onContact}
               />
+
+              {!readOnly && (
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={safeHandler(handleSave)}
+                        disabled={loading}
+                        className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-sm text-sm sm:text-base"
+                      >
+                        <FaSave size={14} />
+                        <span className="hidden sm:inline">{loading ? 'Saving...' : 'Save Changes'}</span>
+                        <span className="sm:hidden">{loading ? 'Saving...' : 'Save'}</span>
+                      </button>
+                      <button
+                        onClick={safeHandler(handleCancel)}
+                        disabled={loading}
+                        className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:bg-slate-100 disabled:cursor-not-allowed text-sm sm:text-base"
+                      >
+                        <FaTimes size={14} />
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={safeHandler(() => setIsEditing(true))}
+                      className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
+                    >
+                      <FaEdit size={14} />
+                      <span className="hidden sm:inline">Edit Profile</span>
+                      <span className="sm:hidden">Edit</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -81,7 +81,11 @@ const UserMenu = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications || []);
+        // Filter out message notifications - they should only appear in conversations
+        const nonMessageNotifications = (data.notifications || []).filter(
+          (notif: Notification) => !(notif.type === 'system' && notif.title === 'New Message')
+        );
+        setNotifications(nonMessageNotifications);
       }
     } catch (error) {
       console.error(error);
@@ -110,6 +114,36 @@ const UserMenu = () => {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    const token = getToken();
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteConversation = async (roomId: string) => {
+    const token = getToken();
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversation/${roomId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        setConversations(prev => prev.filter(conv => conv.id !== roomId));
+      }
     } catch (error) {
       console.error(error);
     }
@@ -224,13 +258,17 @@ const UserMenu = () => {
       userType: user.role || 'user'
     });
     socket.on('newNotification', (notification: Notification) => {
-      setNotifications(prev => {
-        const exists = prev.some(n => n.id === notification.id);
-        return exists ? prev : [notification, ...prev];
-      });
+      // Filter out message notifications - they should only appear in conversations
+      if (!(notification.type === 'system' && notification.title === 'New Message')) {
+        setNotifications(prev => {
+          const exists = prev.some(n => n.id === notification.id);
+          return exists ? prev : [notification, ...prev];
+        });
+      }
     });
     socket.on('receive_message', () => {
       fetchConversations();
+      fetchNotifications(); // Refresh notifications when a message is received
     });
     return () => {
       socket.disconnect();
@@ -273,11 +311,26 @@ const UserMenu = () => {
       </div>
 
       {showConversations && (
-        <ConversationsDropdown conversations={conversations} totalUnreadMessages={totalUnreadMessages} isLoading={isLoading} fetchError={fetchError} onRefresh={fetchConversations} onConversationClick={handleConversationClick} />
+        <ConversationsDropdown 
+          conversations={conversations} 
+          totalUnreadMessages={totalUnreadMessages} 
+          isLoading={isLoading} 
+          fetchError={fetchError} 
+          onRefresh={fetchConversations} 
+          onConversationClick={handleConversationClick}
+          onDeleteConversation={deleteConversation}
+        />
       )}
 
       {showNotifications && (
-        <NotificationsDropdown notifications={notifications} isLoading={isLoading} onMarkAllRead={markAllNotificationsRead} onRefresh={fetchNotifications} onNotificationClick={handleNotificationClick} />
+        <NotificationsDropdown 
+          notifications={notifications} 
+          isLoading={isLoading} 
+          onMarkAllRead={markAllNotificationsRead} 
+          onRefresh={fetchNotifications} 
+          onNotificationClick={handleNotificationClick}
+          onDeleteNotification={deleteNotification}
+        />
       )}
 
       {isOpen && !showConversations && !showNotifications && user && (

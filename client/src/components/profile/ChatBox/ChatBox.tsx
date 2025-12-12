@@ -31,10 +31,6 @@ const ChatBox = () => {
     }
   }, [messages, isChatOpen]);
 
-  useEffect(() => {
-    if (!currentMentor) setMessages([]);
-  }, [currentMentor]);
-
   const loadChatHistory = async (mentorId: string, userId: string) => {
     try {
       const API_URL = import.meta.env.VITE_API_URL;
@@ -43,6 +39,25 @@ const ChatBox = () => {
       if (data.success) setMessages(data.messages);
     } catch { /* empty */ }
   };
+
+  // Clear messages and input when switching conversations
+  // Clear messages and input when switching conversations
+  useEffect(() => {
+    if (!currentMentor) {
+      setMessages([]);
+      setMessage('');
+      return;
+    }
+
+    // Clear messages and input when currentMentor changes
+    setMessages([]);
+    setMessage('');
+    
+    // Load chat history for the new conversation
+    if (user) {
+      loadChatHistory(currentMentor.id, user._id);
+    }
+  }, [currentMentor?.id]);
 
   useEffect(() => {
     if (!socket) return;
@@ -64,17 +79,31 @@ const ChatBox = () => {
 
   useEffect(() => {
     if (!socket || !currentMentor || !user) return;
-
-    if (messages.length === 0) {
-        loadChatHistory(currentMentor.id, user._id);
-    }
     
     socket.emit('join_chat', { mentorId: currentMentor.id, userId: user._id });
 
     const handleReceiveMessage = (data: SocketMessage) => {
+      // Calculate the expected roomId for current conversation
+      const ids = [currentMentor.id, user._id].sort();
+      const expectedRoomId = `private_${ids[0]}_${ids[1]}`;
+      
       setMessages(prev => {
-        if (prev.some(msg => msg.id === data.id)) return prev;
-        return [...prev, data];
+        // Remove optimistic message if it exists (same text and sender)
+        const filtered = prev.filter(msg => 
+          !(msg.id.startsWith('temp_') && 
+            msg.text === data.text && 
+            msg.sender === data.sender &&
+            msg.userId === data.userId)
+        );
+        
+        // Check if message already exists
+        if (filtered.some(msg => msg.id === data.id)) return filtered;
+        
+        // Only add message if it belongs to the current conversation
+        if (data.roomId === expectedRoomId) {
+          return [...filtered, data];
+        }
+        return filtered;
       });
       window.dispatchEvent(new CustomEvent('newMessage'));
     };
@@ -84,20 +113,50 @@ const ChatBox = () => {
     return () => {
       socket.off('receive_message', handleReceiveMessage);
     };
-  }, [socket, currentMentor, user, messages.length]); 
+  }, [socket, currentMentor?.id, user?._id]); 
 
   const handleSendMessage = () => {
     if (!message.trim() || !currentMentor || !user || !socket || !isConnected) return;
     
-    socket.emit('send_message', {
-      mentorId: currentMentor.id,
-      userId: user._id,
-      message: message,
-      type: 'text',
+    const messageText = message.trim();
+    const tempId = `temp_${Date.now()}`;
+    const ids = [currentMentor.id, user._id].sort();
+    const roomId = `private_${ids[0]}_${ids[1]}`;
+    
+    // Optimistically add message to UI
+    const optimisticMessage: SocketMessage = {
+      id: tempId,
+      text: messageText,
+      sender: user.role === 'mentor' ? 'mentor' : 'user',
       timestamp: new Date().toISOString(),
-    });
-
+      userId: user._id,
+      roomId: roomId,
+      isRead: false,
+      type: 'text'
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
     setMessage('');
+    
+    // If user is a mentor, use mentor_reply, otherwise use send_message
+    if (user.role === 'mentor') {
+      socket.emit('mentor_reply', {
+        mentorId: user._id,
+        userId: currentMentor.id, // In this case, currentMentor is actually the student
+        message: messageText,
+        type: 'text',
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      socket.emit('send_message', {
+        mentorId: currentMentor.id,
+        userId: user._id,
+        message: messageText,
+        type: 'text',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     window.dispatchEvent(new CustomEvent('newMessage'));
   };
 
@@ -177,14 +236,15 @@ const ChatBox = () => {
     <>
       {isChatOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={closeChat} />}
 
-      <div className={`fixed inset-0 md:inset-auto md:bottom-0 md:right-6 w-full md:w-[380px] h-full md:h-[500px] md:max-h-[80vh] bg-white flex flex-col z-50 md:rounded-xl md:shadow-2xl md:border md:border-gray-200 overflow-hidden transition-all duration-300 ${isChatOpen ? 'translate-y-0 opacity-100 flex' : 'translate-y-8 opacity-0 pointer-events-none hidden'}`}>
+      <div className={`fixed inset-0 md:inset-auto md:bottom-0 md:right-6 w-full md:w-[400px] h-full md:h-[600px] md:max-h-[85vh] bg-white flex flex-col z-50 md:rounded-xl md:shadow-2xl md:border md:border-slate-200 overflow-hidden transition-all duration-300 ${isChatOpen ? 'translate-y-0 opacity-100 flex' : 'translate-y-8 opacity-0 pointer-events-none hidden'}`}>
         
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3.5 bg-white border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <button onClick={closeChat} className="md:hidden text-gray-600 hover:text-gray-900 transition">
+            <button onClick={closeChat} className="md:hidden text-slate-600 hover:text-slate-900 transition-colors">
               <FaChevronLeft size={18} />
             </button>
-            <div className="w-9 h-9 rounded-full bg-linear-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-700 font-semibold text-sm overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-semibold text-sm overflow-hidden ring-2 ring-slate-200">
               {hasAvatar ? (
                 <img 
                   src={currentMentor.avatar} 
@@ -200,36 +260,35 @@ const ChatBox = () => {
               <Link 
                 to={profilePath}
                 onClick={closeChat}
-                className="font-semibold text-gray-900 text-sm hover:underline hover:text-blue-600 transition-colors"
+                className="font-semibold text-slate-900 text-sm hover:text-slate-700 transition-colors"
               >
                 {currentMentor.name}
               </Link>
-
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500">
                 {currentMentor.title || (currentMentor.role === 'student' ? 'Student' : 'Mentor')}
               </span>
-
             </div>
           </div>
-          <button onClick={closeChat} className="hidden md:block text-gray-500 hover:text-gray-900 transition p-1.5 hover:bg-gray-100 rounded-full">
+          <button onClick={closeChat} className="hidden md:block text-slate-500 hover:text-slate-900 transition-colors p-1.5 hover:bg-slate-100 rounded-full">
             <FaTimes size={16} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 bg-gray-50" ref={messagesEndRef} style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50" ref={messagesEndRef} style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-3">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                <FaPaperPlane className="text-gray-400 text-2xl" />
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+              <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center">
+                <FaPaperPlane className="text-slate-400 text-3xl" />
               </div>
-              <p className="text-sm">Send a message to start chatting</p>
+              <p className="text-sm font-medium text-slate-500">Send a message to start chatting</p>
             </div>
           ) : (
             messages.map(msg => {
               const isCurrentUser = msg.socketId === socket?.id || msg.userId === user?._id;
               return (
                 <div key={msg.id} className={`flex w-full ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[80%] flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
                     
                     {msg.type === 'booking' && msg.booking ? (
                       <BookingCard 
@@ -240,16 +299,16 @@ const ChatBox = () => {
                         onComplete={() => handleCompleteBooking(msg.id)}
                       />
                     ) : (
-                      <div className={`px-3 py-2 text-[13px] leading-relaxed wrap-break-word ${
+                      <div className={`px-4 py-2.5 text-sm leading-relaxed break-words shadow-sm ${
                         isCurrentUser 
-                          ? 'bg-[#0084ff] text-white rounded-[18px]' 
-                          : 'bg-gray-200 text-gray-900 rounded-[18px]'
+                          ? 'bg-slate-900 text-white rounded-2xl rounded-tr-sm' 
+                          : 'bg-white text-slate-900 rounded-2xl rounded-tl-sm border border-slate-200'
                       }`}>
                         {msg.text}
                       </div>
                     )}
 
-                    <span className="text-[10px] text-gray-400 mt-1 px-2">
+                    <span className="text-[11px] text-slate-400 mt-1.5 px-2">
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -259,27 +318,27 @@ const ChatBox = () => {
           )}
         </div>
 
-        <div className="px-3 py-2.5 bg-white border-t border-gray-200">
-          <div className="flex items-center gap-1.5">
-            
+        {/* Input Area */}
+        <div className="px-4 py-3 bg-white border-t border-slate-200">
+          <div className="flex items-end gap-2">
             {user?.role === 'student' && (
               <button 
                 onClick={() => setIsSessionModalOpen(true)}
-                className="w-8 h-8 rounded-full text-[#0084ff] hover:bg-gray-100 transition flex items-center justify-center shrink-0"
+                className="w-9 h-9 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0"
                 title="Schedule Session"
               >
-                <FaCalendarPlus size={16} />
+                <FaCalendarPlus size={18} />
               </button>
             )}
 
-            <div className="flex-1 flex items-center gap-1.5 bg-gray-100 rounded-full px-3 py-1.5">
+            <div className="flex-1 flex items-center gap-2 bg-slate-100 rounded-xl px-4 py-2.5 border border-slate-200 focus-within:ring-2 focus-within:ring-slate-900 focus-within:border-slate-900 transition-all">
               <input
                 type="text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Aa"
-                className="flex-1 bg-transparent border-none outline-none text-[13px] text-gray-900 placeholder-gray-500"
+                placeholder="Type a message..."
+                className="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder-slate-500"
                 disabled={!isConnected}
               />
             </div>
@@ -287,13 +346,13 @@ const ChatBox = () => {
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || !isConnected}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition shrink-0 ${
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0 ${
                 message.trim() && isConnected
-                  ? 'bg-[#0084ff] text-white hover:bg-[#0073e6]' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-slate-900 text-white hover:bg-slate-800 active:scale-95 shadow-sm' 
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
-              <FaPaperPlane size={13} />
+              <FaPaperPlane size={14} />
             </button>
           </div>
         </div>
