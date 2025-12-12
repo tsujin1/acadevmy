@@ -94,17 +94,20 @@ function App() {
                     }
                   />
                   <Route
-                    path="/profile/settings"
+                    path="/settings"
                     element={
                       <ProtectedRoute>
                         <Settings />
                       </ProtectedRoute>
                     }
                   />
-
                   <Route
-                    path="/settings"
-                    element={<Navigate to="/profile/settings" replace />}
+                    path="/profile/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    }
                   />
                 </Routes>
               </main>

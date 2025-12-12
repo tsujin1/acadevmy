@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { authService, type User } from '@/services/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { FaEdit, FaSave, FaTimes, FaUser, FaLock, FaCog } from 'react-icons/fa';
 
 interface SettingsForm {
@@ -15,7 +16,7 @@ interface SettingsForm {
 type UpdateSection = 'profile' | 'password' | 'all';
 
 const Settings = () => {
-  const currentUser = authService.getCurrentUser();
+  const { user: currentUser, isLoading } = useAuth();
 
   const [form, setForm] = useState<SettingsForm>({
     firstName: currentUser?.firstName || '',
@@ -51,6 +52,18 @@ const Settings = () => {
       setOriginalForm(initialForm);
     }
   }, [currentUser]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-lg text-slate-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return null;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });

@@ -15,6 +15,7 @@ export interface SocketMessage {
   timestamp: string;
   userId?: string;
   socketId?: string;
+  roomId?: string;
   isRead?: boolean;
   type?: 'text' | 'booking';
   booking?: Booking;
