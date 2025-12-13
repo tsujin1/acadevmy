@@ -17,6 +17,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (firstName: string, lastName: string, email: string, password: string, role?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -71,6 +72,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
   };
 
+  const register = async (firstName: string, lastName: string, email: string, password: string, role?: string) => {
+    const response = await authService.register(firstName, lastName, email, password, role);
+    setUser(response.user);
+    setToken(response.token);
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    // Ensure axios header is set on register as well
+    axios.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -85,6 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     token,
     isLoading,
     login,
+    register,
     logout,
     isAuthenticated: !!user && !!token,
   };

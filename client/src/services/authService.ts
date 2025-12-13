@@ -64,6 +64,21 @@ export const authService = {
     return { user, token };
   },
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await axios.post<{ message: string }>(`${API_URL}/auth/forgot-password`, {
+      email,
+    });
+    return response.data;
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const response = await axios.post<{ message: string }>(`${API_URL}/auth/reset-password`, {
+      token,
+      password,
+    });
+    return response.data;
+  },
+
   logout() {
     delete axios.defaults.headers.common['Authorization'];
   },

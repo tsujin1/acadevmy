@@ -1,0 +1,344 @@
+import { useState, type FormEvent, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { authService } from '@/services/authService';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, GraduationCap, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+
+// Define the error shape here as well
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+export const ResetPassword = () => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const token = searchParams.get('token');
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid reset link.');
+    }
+  }, [token]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!token) {
+      setError('Invalid or missing reset token.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await authService.resetPassword(token, password);
+      setIsSuccess(true);
+      setTimeout(() => navigate('/login'), 4000);
+    } catch (err) {
+      // Cast the error to our interface
+      const apiError = err as ApiError;
+      setError(apiError.response?.data?.message || 'Failed to reset password. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1] as const,
+      },
+    },
+  };
+
+  const errorCardVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1] as const,
+      },
+    },
+  };
+
+  const successVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1] as const,
+      },
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.9,
+      transition: {
+        duration: 0.3,
+      },
+    },
+  };
+
+  const formVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1] as const,
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      transition: {
+        duration: 0.3,
+      },
+    },
+  };
+
+  const errorVariants = {
+    hidden: { opacity: 0, y: -10, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: [0.22, 1, 0.36, 1] as const,
+      },
+    },
+  };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
+        <motion.div
+          className="w-full max-w-[400px] bg-white rounded-xl border border-red-100 shadow-sm p-8 text-center"
+          variants={errorCardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 mb-6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 12,
+              delay: 0.2,
+            }}
+          >
+            <AlertCircle className="h-7 w-7 text-red-600" />
+          </motion.div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Invalid Link</h1>
+          <p className="text-sm text-slate-500 mb-6">
+            This password reset link is invalid or has expired.
+          </p>
+          <Button asChild className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11">
+            <Link to="/forgot-password">Request New Link</Link>
+          </Button>
+          <div className="mt-4">
+            <Link to="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900">
+              Back to Sign In
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
+      <motion.div
+        className="w-full max-w-[400px] space-y-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Logo */}
+        <motion.div
+          className="flex flex-col items-center text-center space-y-2"
+          variants={itemVariants}
+        >
+          <motion.div
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg mb-2"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 15,
+              delay: 0.2,
+            }}
+          >
+            <GraduationCap className="h-6 w-6" />
+          </motion.div>
+          <span className="text-xl font-bold tracking-tight text-slate-900">Acadevmy</span>
+        </motion.div>
+
+        <AnimatePresence mode="wait">
+          {isSuccess ? (
+            // Success View
+            <motion.div
+              key="success"
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center"
+              variants={successVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <motion.div
+                className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 mb-6"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 12,
+                  delay: 0.2,
+                }}
+              >
+                <CheckCircle className="h-7 w-7 text-green-600" />
+              </motion.div>
+              <h1 className="text-xl font-bold text-slate-900 mb-2">Password Reset</h1>
+              <p className="text-sm text-slate-500 mb-6">
+                Your password has been successfully updated. You can now access your account.
+              </p>
+              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 font-medium">
+                <Link to="/login">
+                  Sign In Now <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </motion.div>
+          ) : (
+            // Reset Form View
+            <motion.div
+              key="form"
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8"
+              variants={formVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <motion.div className="text-center mb-8" variants={itemVariants}>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Reset password
+                </h1>
+                <p className="text-sm text-slate-500 mt-2">
+                  Please enter your new password below.
+                </p>
+              </motion.div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      className="p-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md text-center"
+                      variants={errorVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="password">New Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11 bg-slate-50/50 focus:bg-white transition-colors"
+                    required
+                    minLength={8}
+                  />
+                </motion.div>
+
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11 bg-slate-50/50 focus:bg-white transition-colors"
+                    required
+                    minLength={8}
+                  />
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                  <Button disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 font-medium shadow-sm">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Resetting...
+                      </>
+                    ) : (
+                      'Reset Password'
+                    )}
+                  </Button>
+                </motion.div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+};

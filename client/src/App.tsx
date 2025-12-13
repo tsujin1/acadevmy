@@ -5,6 +5,9 @@ import { Footer } from './components/layout/Footer';
 import { LoginBanner } from './components/LoginBanner';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Mentors } from './pages/Mentors';
 import { About } from './pages/About';
@@ -19,6 +22,18 @@ export const App = () => {
           <Route
             path="/login"
             element={<Login />}
+          />
+          <Route
+            path="/register"
+            element={<Register />}
+          />
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
           />
           <Route
             path="/*"

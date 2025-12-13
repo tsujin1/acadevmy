@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { GraduationCap } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LoginForm } from '@/components/auth/LoginForm';
-import avatarImage from '@/assets/justin-avatar.png';
+import { SignUpForm } from '@/components/auth/SignUpForm';
+import avatarImage from '@/assets/steven-avatar.png';
 
-export const Login = () => {
+export const Register = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -72,7 +72,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="w-full h-screen lg:grid lg:grid-cols-2 overflow-hidden bg-white">
+    <div className="w-full min-h-screen lg:h-screen lg:grid lg:grid-cols-2 lg:overflow-hidden bg-white">
       {/* --- LEFT SIDE (White Theme) --- */}
       <motion.div
         className="hidden lg:flex flex-col bg-slate-50 border-r border-slate-200 p-10 xl:p-12 h-full"
@@ -102,7 +102,6 @@ export const Login = () => {
         </motion.div>
 
         {/* 2. Main: Avatar & Quote */}
-        {/* CHANGED: Increased from mt-24 to mt-48 to lower it significantly without centering it */}
         <motion.div
           className="mt-48 flex flex-col items-start max-w-lg space-y-8"
           variants={itemVariants}
@@ -111,10 +110,10 @@ export const Login = () => {
             <Avatar className="h-28 w-28 border-4 border-white shadow-xl ring-1 ring-slate-100">
               <AvatarImage
                 src={avatarImage}
-                alt="Justin Dimaandal"
+                alt="Steven Spielberg"
                 className="h-full w-full object-cover"
               />
-              <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-2xl">JD</AvatarFallback>
+              <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-2xl">SS</AvatarFallback>
             </Avatar>
           </motion.div>
 
@@ -123,29 +122,31 @@ export const Login = () => {
             variants={itemVariants}
           >
             <p className="text-2xl font-medium leading-relaxed text-slate-900">
-              &ldquo;Mentorship is the cheat code to a successful engineering career.
-              We built this platform to help you skip the mistakes and build real software faster.&rdquo;
+              &ldquo;The delicate balance of mentoring someone is not creating them in your own image, but giving them the opportunity to create themselves.&rdquo;
             </p>
           </motion.blockquote>
         </motion.div>
 
-        {/* 3. Footer: Name & Title (Pinned to Bottom) */}
+        {/* 3. Footer: Name & Title  */}
         <motion.div
           className="mt-auto flex flex-col items-start shrink-0"
           variants={itemVariants}
         >
-          <div className="font-bold text-slate-900 text-lg">Justin Dimaandal</div>
-          <div className="text-sm font-medium text-slate-500">Founder & Developer of Acadevmy</div>
+          <div className="font-bold text-slate-900 text-lg">Steven Spielberg</div>
+          <div className="text-sm font-medium text-slate-500">American filmmaker</div>
         </motion.div>
       </motion.div>
 
       {/* --- RIGHT SIDE (Form) --- */}
+      {/* FIX 3: Wrapped SignUpForm in a div that handles scrolling on desktop.
+                 'lg:overflow-y-auto' allows the form to scroll while the left side stays still. */}
       <motion.div
+        className="w-full h-full lg:overflow-y-auto bg-white"
         variants={rightSideVariants}
         initial="hidden"
         animate="visible"
       >
-        <LoginForm />
+        <SignUpForm />
       </motion.div>
     </div>
   );
