@@ -1,27 +1,46 @@
 import { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Shadcn Skeleton
 import { ArrowRight, Users } from 'lucide-react';
 import { MentorCard } from '@/components/mentors/MentorCard';
 import { userService, type Mentor, type ReviewStats } from '@/services/userService';
+import { ProtectedLink } from '@/components/ProtectedLink';
 
+// Refactored to use Shadcn Skeleton
 const SkeletonCard = () => (
-  <div className="h-full border border-slate-100 bg-white rounded-2xl p-6 shadow-sm">
-    <div className="flex items-center gap-4 mb-4">
-      <div className="w-14 h-14 rounded-2xl bg-slate-100 animate-pulse" />
-      <div className="flex-1 space-y-2">
-        <div className="h-5 bg-slate-100 rounded w-3/4 animate-pulse" />
-        <div className="h-3 bg-slate-100 rounded w-1/2 animate-pulse" />
+  <div className="h-full border border-slate-100 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
+    {/* Body */}
+    <div className="p-6 flex flex-col items-center text-center flex-grow">
+      <Skeleton className="w-24 h-24 rounded-full mb-4" /> {/* Avatar */}
+
+      <div className="space-y-2 mb-6 w-full flex flex-col items-center">
+        <Skeleton className="h-6 w-1/2" /> {/* Name */}
+        <Skeleton className="h-4 w-1/3" /> {/* Title */}
+      </div>
+
+      <div className="space-y-2 mb-6 w-full">
+        <Skeleton className="h-3 w-full" /> {/* Bio Line 1 */}
+        <Skeleton className="h-3 w-5/6 mx-auto" /> {/* Bio Line 2 */}
+      </div>
+
+      <div className="flex justify-center gap-2 w-full mt-auto">
+        <Skeleton className="h-6 w-16 rounded-lg" />
+        <Skeleton className="h-6 w-16 rounded-lg" />
+        <Skeleton className="h-6 w-16 rounded-lg" />
       </div>
     </div>
-    <div className="space-y-2 mb-6">
-      <div className="h-3 bg-slate-100 rounded w-full animate-pulse" />
-      <div className="h-3 bg-slate-100 rounded w-5/6 animate-pulse" />
-    </div>
-    <div className="flex gap-2">
-      <div className="h-6 w-16 bg-slate-100 rounded-lg animate-pulse" />
-      <div className="h-6 w-16 bg-slate-100 rounded-lg animate-pulse" />
+
+    {/* Footer Bar */}
+    <div className="border-t border-slate-100 bg-slate-50 p-4 grid grid-cols-2 divide-x divide-slate-200">
+      <div className="flex flex-col items-center gap-2">
+        <Skeleton className="h-4 w-8" />
+        <Skeleton className="h-3 w-12" />
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-3 w-12" />
+      </div>
     </div>
   </div>
 );
@@ -41,7 +60,8 @@ export const MeetMentors = () => {
             try {
               const stats = await userService.getMentorReviewStats(mentor._id);
               return { ...mentor, stats };
-            } catch (err) {
+            } catch {
+              // FIXED: Removed 'err' variable to satisfy ESLint
               return { ...mentor, stats: { averageRating: 0, totalReviews: 0 } };
             }
           })
@@ -57,8 +77,10 @@ export const MeetMentors = () => {
     fetchMentors();
   }, []);
 
+  // ... rest of your return statement stays exactly the same ...
   return (
     <section className="py-24 bg-white">
+      {/* ... your existing JSX ... */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
@@ -122,9 +144,9 @@ export const MeetMentors = () => {
               size="lg"
               className="h-12 px-8 text-base bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-blue-200 hover:text-blue-600 transition-all shadow-sm"
             >
-              <Link to="/mentors">
+              <ProtectedLink to="/mentors">
                 Explore All Mentors <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              </ProtectedLink>
             </Button>
           </motion.div>
         )}
@@ -132,4 +154,3 @@ export const MeetMentors = () => {
     </section>
   );
 };
-

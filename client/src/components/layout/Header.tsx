@@ -2,15 +2,19 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MobileNav } from './MobileNav';
 import { GraduationCap } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedLink } from '@/components/ProtectedLink';
 
 export const Header = () => {
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const navItems = [
     { path: '/', label: 'Home' },
     { path: '/mentors', label: 'All Mentors' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact Us' },
+    ...(isAuthenticated ? [{ path: '/dashboard', label: 'Dashboard' }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -33,31 +37,53 @@ export const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`text-sm font-medium transition-colors hover:text-blue-600 ${isActive(item.path)
-                ? 'text-blue-600 font-semibold'
-                : 'text-slate-600'
-                }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            // Only protect /mentors route, make /about and /contact accessible
+            const isProtected = item.path === '/mentors';
+            const Component = isProtected && !isAuthenticated ? ProtectedLink : Link;
+
+            return (
+              <Component
+                key={item.path}
+                to={item.path}
+                className={`text-sm font-medium transition-colors hover:text-blue-600 ${isActive(item.path)
+                  ? 'text-blue-600 font-semibold'
+                  : 'text-slate-600'
+                  }`}
+              >
+                {item.label}
+              </Component>
+            );
+          })}
         </nav>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-4">
-          {/* Desktop Login Button */}
-          <div className="hidden md:block">
-            <Button
-              asChild
-              className="bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-all hover:shadow-md"
-            >
-              <Link to="/login">Login</Link>
-            </Button>
-          </div>
+          {isAuthenticated ? (
+            <>
+              <div className="hidden md:block text-sm text-slate-600">
+                Welcome, {user?.firstName}
+              </div>
+              <div className="hidden md:block">
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  className="shadow-sm"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="hidden md:block">
+              <Button
+                asChild
+                className="bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-all hover:shadow-md"
+              >
+                <Link to="/login">Login</Link>
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu */}
           <MobileNav />

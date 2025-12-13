@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { GraduationCap, Mail, MapPin } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedLink } from '@/components/ProtectedLink';
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { isAuthenticated } = useAuth();
 
   return (
     <footer className="bg-slate-50 border-t border-slate-200">
@@ -37,9 +40,9 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/mentors" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+                <ProtectedLink to="/mentors" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
                   Find a Mentor
-                </Link>
+                </ProtectedLink>
               </li>
               <li>
                 <Link to="/about" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
@@ -47,10 +50,23 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
-                  Log In
+                <Link to="/contact" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+                  Contact Us
                 </Link>
               </li>
+              {isAuthenticated ? (
+                <li>
+                  <Link to="/dashboard" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+                    Dashboard
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <Link to="/login" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+                    Log In
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
