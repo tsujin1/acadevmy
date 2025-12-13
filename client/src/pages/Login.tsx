@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect } from 'react'; // FIXED: Added 'type' for FormEvent
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,15 @@ import { Label } from '@/components/ui/label';
 import { GraduationCap, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import avatarImage from '@/assets/justin-avatar.svg';
+
+// FIXED: Defined interface for Error handling to avoid 'any'
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -31,8 +40,9 @@ export const Login = () => {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to login. Please try again.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.response?.data?.message || 'Failed to login. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -41,20 +51,21 @@ export const Login = () => {
   return (
     <div className="w-full h-screen lg:grid lg:grid-cols-2 overflow-hidden bg-white">
 
-      {/* --- LEFT SIDE (White Theme - Left Aligned Layout) --- */}
-      <div className="hidden lg:flex flex-col justify-between bg-slate-50 border-r border-slate-200 p-10 xl:p-12 h-full">
+      {/* --- LEFT SIDE (White Theme - Anchored Top-Left) --- */}
+      {/* flex-col with h-full allows us to use mt-auto for the footer */}
+      <div className="hidden lg:flex flex-col bg-slate-50 border-r border-slate-200 p-10 xl:p-12 h-full">
 
-        {/* 1. Header: Logo (Aligned Left) */}
-        <div className="flex items-center text-lg font-bold tracking-tight text-slate-900">
+        {/* 1. Header: Logo */}
+        <div className="flex items-center text-lg font-bold tracking-tight text-slate-900 shrink-0">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white mr-2 shadow-sm">
             <GraduationCap className="h-5 w-5" />
           </div>
           Acadevmy
         </div>
 
-        {/* 2. Main: Avatar & Quote (Aligned Left) */}
-        {/* Changed 'items-center text-center' to 'items-start text-left' */}
-        <div className="flex-1 flex flex-col items-start justify-center max-w-lg space-y-8">
+        {/* 2. Main: Avatar & Quote (Anchored Top Left with Margin) */}
+        {/* Removed 'flex-1' and 'justify-center'. Added 'mt-24' to space it from logo but keep it upper-left */}
+        <div className="mt-24 flex flex-col items-start max-w-lg space-y-8">
           <Avatar className="h-28 w-28 border-4 border-white shadow-xl ring-1 ring-slate-100">
             <AvatarImage
               src={avatarImage}
@@ -72,8 +83,9 @@ export const Login = () => {
           </blockquote>
         </div>
 
-        {/* 3. Footer: Name & Title (Aligned Left) */}
-        <div className="flex flex-col items-start">
+        {/* 3. Footer: Name & Title (Pushed to Bottom) */}
+        {/* mt-auto pushes this element to the very bottom of the flex container */}
+        <div className="mt-auto flex flex-col items-start">
           <div className="font-bold text-slate-900 text-lg">Justin Dimaandal</div>
           <div className="text-sm font-medium text-slate-500">Founder & Developer of Acadevmy</div>
         </div>
@@ -83,7 +95,7 @@ export const Login = () => {
       <div className="flex items-center justify-center py-12 px-4 sm:px-8 bg-white h-full">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[380px]">
 
-          {/* Mobile Logo (Visible only on small screens) */}
+          {/* Mobile Logo */}
           <div className="flex flex-col space-y-2 text-center">
             <div className="lg:hidden flex justify-center mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
