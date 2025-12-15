@@ -1,15 +1,25 @@
 import { Request, Response } from 'express';
 import Message from '../models/Message';
+import { AuthRequest } from '../middleware/auth';
 
 export function createRoomId(mentorId: string, userId: string): string {
   const ids = [mentorId, userId].sort();
   return `private_${ids[0]}_${ids[1]}`;
 }
 
-export const getChatHistory = async (req: Request, res: Response) => {
+export const getChatHistory = async (req: AuthRequest, res: Response) => {
   try {
     const { mentorId, userId } = req.params;
+    const authenticatedUserId = req.user?.id;
     const { limit = 50, before } = req.query;
+
+    // Verify the authenticated user is part of this conversation
+    if (!authenticatedUserId || (authenticatedUserId !== mentorId && authenticatedUserId !== userId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this conversation',
+      });
+    }
 
     const roomId = createRoomId(mentorId, userId);
 
@@ -79,14 +89,31 @@ export const saveMessage = async (data: {
   }
 };
 
-export const markMessagesAsRead = async (req: Request, res: Response) => {
+export const markMessagesAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const { roomId, userId } = req.body;
+    const authenticatedUserId = req.user?.id;
 
     if (!roomId || !userId) {
       return res.status(400).json({
         success: false,
         message: 'roomId and userId are required',
+      });
+    }
+
+    // Verify the authenticated user matches the userId in the request
+    if (!authenticatedUserId || authenticatedUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to mark messages as read',
+      });
+    }
+
+    // Verify the user is part of this conversation
+    if (!roomId.includes(authenticatedUserId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this conversation',
       });
     }
 
@@ -135,9 +162,18 @@ export const updateMessageReadStatus = async (roomId: string, userId: string) =>
   }
 };
 
-export const getUnreadMessages = async (req: Request, res: Response) => {
+export const getUnreadMessages = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    const authenticatedUserId = req.user?.id;
+
+    // Verify the authenticated user matches the userId in the request
+    if (!authenticatedUserId || authenticatedUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access unread messages',
+      });
+    }
 
     const unreadMessages = await Message.aggregate([
       {
@@ -184,9 +220,18 @@ export const getUnreadMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserConversations = async (req: Request, res: Response) => {
+export const getUserConversations = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    const authenticatedUserId = req.user?.id;
+
+    // Verify the authenticated user matches the userId in the request
+    if (!authenticatedUserId || authenticatedUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access conversations',
+      });
+    }
 
     const conversations = await Message.aggregate([
       {
@@ -246,9 +291,26 @@ export const getUserConversations = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteConversation = async (req: Request, res: Response) => {
+export const deleteConversation = async (req: AuthRequest, res: Response) => {
   try {
     const { roomId } = req.params;
+    const authenticatedUserId = req.user?.id;
+
+    if (!authenticatedUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+      });
+    }
+
+    // Verify the user is part of this conversation
+    if (!roomId.includes(authenticatedUserId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this conversation',
+      });
+    }
+
     await Message.deleteMany({ roomId });
     res.json({ success: true });
   } catch (error) {

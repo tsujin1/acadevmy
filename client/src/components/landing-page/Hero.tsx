@@ -90,6 +90,10 @@ const Hero = () => {
                 scale: 1.02,
                 transition: { duration: 0.3 }
               }}
+              onError={(e) => {
+                // Hide image if it fails to load
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </motion.div>
         </motion.div>

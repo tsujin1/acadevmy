@@ -79,8 +79,8 @@ const MentorCard = ({ mentor, onViewProfile }: MentorCardProps) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <h3 className="font-semibold text-lg text-gray-900">{mentor.name}</h3>
-              <p className="text-sm text-gray-600">{mentor.title}</p>
+              <h3 className="font-semibold text-lg text-gray-900">{mentor.name || 'Mentor'}</h3>
+              <p className="text-sm text-gray-600">{mentor.title || 'Professional'}</p>
             </div>
             <motion.span 
               className="bg-gray-900 text-white px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap ml-2 shadow-lg"
@@ -90,11 +90,13 @@ const MentorCard = ({ mentor, onViewProfile }: MentorCardProps) => {
             </motion.span>
           </div>
 
-          <div className="flex items-center text-xs text-gray-500 mb-3">
-            <span>{mentor.company}</span>
-            <span className="mx-2">•</span>
-            <span>{mentor.experience} years experience</span>
-          </div>
+          {(mentor.company || mentor.experience) && (
+            <div className="flex items-center text-xs text-gray-500 mb-3">
+              {mentor.company && <span>{mentor.company}</span>}
+              {mentor.company && mentor.experience && <span className="mx-2">•</span>}
+              {mentor.experience && <span>{mentor.experience} years experience</span>}
+            </div>
+          )}
 
           <div className="flex items-center space-x-1 mb-3">
             <svg className="w-4 h-4 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
@@ -105,24 +107,32 @@ const MentorCard = ({ mentor, onViewProfile }: MentorCardProps) => {
           </div>
 
           <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {mentor.bio}
+            {mentor.bio || 'No bio available yet.'}
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {mentor.skills.slice(0, 3).map((skill, index) => (
-              <motion.span
-                key={skill}
-                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                {skill}
-              </motion.span>
-            ))}
-            {mentor.skills.length > 3 && (
-              <span className="px-3 py-1.5 bg-gray-50 text-gray-500 text-xs font-medium rounded-md">
-                +{mentor.skills.length - 3} more
+            {mentor.skills && mentor.skills.length > 0 ? (
+              <>
+                {mentor.skills.slice(0, 3).map((skill, index) => (
+                  <motion.span
+                    key={skill}
+                    className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    {skill}
+                  </motion.span>
+                ))}
+                {mentor.skills.length > 3 && (
+                  <span className="px-3 py-1.5 bg-gray-50 text-gray-500 text-xs font-medium rounded-md">
+                    +{mentor.skills.length - 3} more
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="px-3 py-1.5 bg-gray-50 text-gray-400 text-xs font-medium rounded-md italic">
+                Skills coming soon
               </span>
             )}
           </div>

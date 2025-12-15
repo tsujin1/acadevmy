@@ -20,13 +20,20 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Validate role - only allow 'student' or 'mentor', default to 'student'
+    // Prevent 'admin' role from being set during registration
+    const validRoles = ['student', 'mentor'];
+    const userRole = role && validRoles.includes(role.toLowerCase()) 
+      ? role.toLowerCase() 
+      : 'student';
+
     const user = await User.create({
       firstName,
       lastName,
       email,
       password,
-      role: role || 'student',
-      isMentor: role === 'mentor'
+      role: userRole,
+      isMentor: userRole === 'mentor'
     });
 
     const token = generateToken(user._id.toString());

@@ -249,14 +249,28 @@ const UserMenu = () => {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Check if socket already exists to prevent multiple connections
+    if (socketRef.current?.connected) {
+      return;
+    }
+    
     const socket = io(API_BASE_URL, {
-      auth: { token: getToken() }
+      auth: { token: getToken() },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
     socketRef.current = socket;
-    socket.emit('register_user', {
-      userId: user._id,
-      userType: user.role || 'user'
+    
+    socket.on('connect', () => {
+      socket.emit('register_user', {
+        userId: user._id,
+        userType: user.role || 'user'
+      });
     });
+    
     socket.on('newNotification', (notification: Notification) => {
       // Filter out message notifications - they should only appear in conversations
       if (!(notification.type === 'system' && notification.title === 'New Message')) {
@@ -266,22 +280,28 @@ const UserMenu = () => {
         });
       }
     });
+    
     socket.on('receive_message', () => {
+      // Use callback to avoid dependency issues
       fetchConversations();
-      fetchNotifications(); // Refresh notifications when a message is received
+      fetchNotifications();
     });
+    
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, [user, fetchConversations]);
+  }, [user]); // Removed fetchConversations from dependencies
 
   useEffect(() => {
     if (user) {
       fetchConversations();
       fetchNotifications();
     }
-  }, [user, fetchConversations, fetchNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only re-fetch when user changes, not when callbacks change
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

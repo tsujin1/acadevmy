@@ -27,11 +27,19 @@ const formatUserResponse = (user: any) => ({
   twitter: user.twitter || ''
 });
 
+// Format user response for public listings (excludes email)
+const formatPublicUserResponse = (user: any) => {
+  const formatted = formatUserResponse(user);
+  delete formatted.email;
+  return formatted;
+};
+
 export const getUserById = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select('-password -email');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(formatUserResponse(user));
+    // Use public formatter to exclude email for public access
+    res.json(formatPublicUserResponse(user));
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -39,10 +47,23 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const getMentors = async (req: Request, res: Response) => {
   try {
-    const mentors = await User.find({ role: 'mentor' })
-      .select('-password')
+    // Filter out test users and users with incomplete profiles
+    const mentors = await User.find({ 
+      role: 'mentor',
+      // Exclude test users
+      firstName: { $not: /^test$/i },
+      lastName: { $not: /^[0-9]+$/ },
+      // Only include users with at least some profile data
+      $or: [
+        { title: { $exists: true, $ne: '' } },
+        { company: { $exists: true, $ne: '' } },
+        { bio: { $exists: true, $ne: '' } },
+        { skills: { $exists: true, $ne: [] } }
+      ]
+    })
+      .select('-password -email')
       .sort({ createdAt: -1 });
-    res.json(mentors.map(formatUserResponse));
+    res.json(mentors.map(formatPublicUserResponse));
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -50,10 +71,16 @@ export const getMentors = async (req: Request, res: Response) => {
 
 export const getStudents = async (req: Request, res: Response) => {
   try {
-    const students = await User.find({ role: 'student' })
-      .select('-password')
+    // Filter out test users and exclude email for public access
+    const students = await User.find({ 
+      role: 'student',
+      // Exclude test users
+      firstName: { $not: /^test$/i },
+      lastName: { $not: /^[0-9]+$/ }
+    })
+      .select('-password -email')
       .sort({ createdAt: -1 });
-    res.json(students.map(formatUserResponse));
+    res.json(students.map(formatPublicUserResponse));
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -65,6 +92,14 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 
     const user = await User.findById(req.user.id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Prevent role manipulation - explicitly exclude role and isMentor from updates
+    const restrictedFields = ['role', 'isMentor', 'password', '_id', 'isEmailVerified'];
+    restrictedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        delete req.body[field]; // Remove restricted fields from request
+      }
+    });
 
     const updatableFields = [
       'firstName', 'lastName', 'email', 'title', 'company', 'experience',
@@ -159,10 +194,13 @@ export const getRelatedMentors = async (req: Request, res: Response) => {
     const currentCompany = currentMentor.company || '';
     const currentLocation = currentMentor.location || '';
 
-    // Find mentors with matching criteria
+    // Find mentors with matching criteria (exclude test users)
     const relatedMentors = await User.find({
       role: 'mentor',
       _id: { $ne: id }, // Exclude current mentor
+      // Exclude test users
+      firstName: { $not: /^test$/i },
+      lastName: { $not: /^[0-9]+$/ },
       $or: [
         // Match by skills (at least one common skill)
         ...(currentSkills.length > 0 ? [{ skills: { $in: currentSkills } }] : []),
@@ -172,7 +210,7 @@ export const getRelatedMentors = async (req: Request, res: Response) => {
         ...(currentLocation ? [{ location: currentLocation }] : [])
       ]
     })
-      .select('-password')
+      .select('-password -email')
       .limit(limit);
 
     // Sort by relevance: prioritize mentors with more matching criteria
@@ -201,10 +239,10 @@ export const getRelatedMentors = async (req: Request, res: Response) => {
       return { mentor, score };
     });
 
-    // Sort by score (descending) and return formatted mentors
+    // Sort by score (descending) and return formatted mentors (exclude email)
     const sortedMentors = scoredMentors
       .sort((a, b) => b.score - a.score)
-      .map(item => formatUserResponse(item.mentor));
+      .map(item => formatPublicUserResponse(item.mentor));
 
     res.json(sortedMentors);
   } catch (error) {

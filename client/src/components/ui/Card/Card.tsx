@@ -51,8 +51,8 @@ const Card = ({ mentor, onClick }: CardProps) => {
             )}
           </div>
 
-          <h3 className="font-semibold text-gray-900 text-center mb-1">{mentor.name}</h3>
-          <p className="text-sm text-gray-600 text-center mb-2">{mentor.title}</p>
+          <h3 className="font-semibold text-gray-900 text-center mb-1">{mentor.name || 'Mentor'}</h3>
+          <p className="text-sm text-gray-600 text-center mb-2">{mentor.title || 'Professional'}</p>
 
           <div className="flex items-center justify-center mb-3 space-x-1">
             <svg className="w-4 h-4 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
@@ -63,19 +63,27 @@ const Card = ({ mentor, onClick }: CardProps) => {
           </div>
 
           <div className={`flex flex-wrap justify-center gap-2 mb-3 ${SKILLS_CONTAINER_HEIGHT}`}>
-            {mentor.skills.slice(0, 2).map((skill) => (
-              <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md">{skill}</span>
-            ))}
-            {mentor.skills.length > 2 && (
-              <span className="px-3 py-1.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-md">
-                +{mentor.skills.length - 2}
+            {mentor.skills && mentor.skills.length > 0 ? (
+              <>
+                {mentor.skills.slice(0, 2).map((skill) => (
+                  <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md">{skill}</span>
+                ))}
+                {mentor.skills.length > 2 && (
+                  <span className="px-3 py-1.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-md">
+                    +{mentor.skills.length - 2}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="px-3 py-1.5 bg-gray-50 text-gray-400 text-xs font-medium rounded-md italic">
+                Skills coming soon
               </span>
             )}
           </div>
         </div>
 
         <p className={`text-sm text-gray-600 text-center leading-relaxed line-clamp-2 ${BIO_HEIGHT}`}>
-          {mentor.bio}
+          {mentor.bio || 'No bio available yet.'}
         </p>
       </div>
     </div>
