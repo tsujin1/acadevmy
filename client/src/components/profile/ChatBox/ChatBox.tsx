@@ -34,10 +34,20 @@ const ChatBox = () => {
   const loadChatHistory = async (mentorId: string, userId: string) => {
     try {
       const API_URL = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${API_URL}/messages/${mentorId}/${userId}`);
-      const data = await response.json();
-      if (data.success) setMessages(data.messages);
-    } catch { /* empty */ }
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${API_URL}/messages/${mentorId}/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) setMessages(data.messages);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
   };
 
   // Clear messages and input when switching conversations

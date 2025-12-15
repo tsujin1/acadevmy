@@ -7,10 +7,17 @@ export const useSocket = () => {
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL;
+    if (!socketUrl) {
+      console.warn('VITE_SOCKET_URL not configured');
+      return;
+    }
 
     const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      timeout: 10000
+      timeout: 10000,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
 
     socketInstance.on('connect', () => {
@@ -22,13 +29,19 @@ export const useSocket = () => {
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.log('Connection error:', error.message);
+      // Only log if it's not a normal disconnection
+      if (error.message !== 'xhr poll error') {
+        console.log('Connection error:', error.message);
+      }
     });
 
     setSocket(socketInstance);
 
     return () => {
-      socketInstance.disconnect();
+      if (socketInstance.connected) {
+        socketInstance.disconnect();
+      }
+      setSocket(null);
     };
   }, []);
 

@@ -28,9 +28,14 @@ export const userService = {
     return response.data;
   },
 
-  async getMentors(): Promise<User[]> {
-    const response = await api.get<User[]>('/users/mentors');
-    return response.data;
+  async getMentors(limit?: number, page?: number): Promise<User[]> {
+    const params: any = {};
+    if (limit) params.limit = limit;
+    if (page) params.page = page;
+    
+    const response = await api.get<{ mentors: User[]; pagination: any }>('/users/mentors', { params });
+    // Always return paginated format now
+    return response.data.mentors || [];
   },
 
   async getStudents(): Promise<User[]> {

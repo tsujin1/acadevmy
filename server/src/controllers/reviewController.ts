@@ -114,8 +114,22 @@ export const getMentorReviews = async (req: Request, res: Response) => {
       count: stats.ratingDistribution.filter((r: number) => r === star).length
     }));
 
+    // Clean reviews: keep base64 images if reasonably sized
+    const cleanedReviews = reviews.map((review: any) => {
+      const reviewObj = review.toObject ? review.toObject() : review;
+      if (reviewObj.userId?.avatar?.url && reviewObj.userId.avatar.url.startsWith('data:')) {
+        // Only remove if too large (performance issue)
+        const base64Size = reviewObj.userId.avatar.url.length;
+        if (base64Size > 100000) {
+          reviewObj.userId.avatar = {};
+        }
+        // Otherwise keep it
+      }
+      return reviewObj;
+    });
+
     res.json({
-      reviews,
+      reviews: cleanedReviews,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalReviews / limit),

@@ -69,7 +69,8 @@ export const useMentorFilters = () => {
   const fetchMentors = useCallback(async () => {
     try {
       setLoading(true);
-      const users = await userService.getMentors();
+      // Always limit to prevent fetching all mentors at once (performance)
+      const users = await userService.getMentors(100, 1); // Max 100 mentors per page
 
       const mentorsWithStats = await Promise.all(
         users.map(async (user) => {

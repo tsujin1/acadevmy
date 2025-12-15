@@ -41,17 +41,22 @@ const MentorShowcase = () => {
     const fetchAndFilterMentors = async () => {
       try {
         setLoading(true);
-        const usersData = await userService.getMentors();
+        // Only fetch a limited number of mentors for landing page (performance optimization)
+        const response = await userService.getMentors(20, 1); // Limit to 20 mentors, page 1
+        // Handle both old format (array) and new format (object with mentors array)
+        const usersData = Array.isArray(response) ? response : (response as any).mentors || [];
         const initialMentors: Mentor[] = usersData.map((user: ServiceUser) => mapUserToMentor(user));
         
-        const reviewStatsPromises = initialMentors.map(mentor => fetchMentorReviewStats(mentor.id));
+        // Only fetch review stats for the mentors we'll actually display
+        const reviewStatsPromises = initialMentors.slice(0, 20).map(mentor => fetchMentorReviewStats(mentor.id));
         const allStats = await Promise.all(reviewStatsPromises);
         
         const liveMentors: LiveMentor[] = initialMentors
+          .slice(0, 20) // Limit to first 20 for review stats
           .map((mentor, index) => ({
             ...mentor,
-            liveRating: allStats[index].averageRating,
-            liveReviewCount: allStats[index].totalReviews,
+            liveRating: allStats[index]?.averageRating || 0,
+            liveReviewCount: allStats[index]?.totalReviews || 0,
           }))
           .filter(mentor => mentor.liveRating >= 4.0);
 

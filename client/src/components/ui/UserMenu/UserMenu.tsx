@@ -46,6 +46,7 @@ const UserMenu = () => {
             avatarUrl = userData.avatar;
           } else if (userData.avatar.url) {
             avatarUrl = userData.avatar.url;
+            // Handle base64 images (keep them for now)
             if (avatarUrl && !avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:')) {
               avatarUrl = `${API_BASE_URL}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
             }
@@ -62,11 +63,19 @@ const UserMenu = () => {
           role: userData.role,
           avatar: avatarUrl
         };
+      } else if (response.status === 404) {
+        // User not found - return fallback data
+        return { 
+          name: `User ${userId.substring(0, 6)}`, 
+          title: 'User',
+          avatar: undefined
+        };
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching user details:', error);
     }
-    return { name: `User ${userId.substring(0, 6)}`, title: 'User' };
+    // Fallback for any error
+    return { name: `User ${userId.substring(0, 6)}`, title: 'User', avatar: undefined };
   }, []);
 
   const fetchNotifications = useCallback(async () => {
@@ -188,26 +197,48 @@ const UserMenu = () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/conversations/${user._id}`);
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversations/${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       if (data.success) {
         const transformedConversations: Conversation[] = await Promise.all(
           (data.conversations || []).map(async (conv: ApiConversation) => {
-            const roomParts = conv.roomId.split('_');
-            const mentorId = roomParts[1] === user._id ? roomParts[2] : roomParts[1];
-            const userDetails = await fetchUserDetails(mentorId);
-            const lastMessageText = conv.lastMessage?.text || 'No messages yet';
-            return {
-              id: conv.roomId,
-              mentorId,
-              name: userDetails.name,
-              title: userDetails.title,
-              avatar: userDetails.avatar,
-              lastMessage: lastMessageText,
-              unreadCount: conv.unreadCount || 0,
-              hasMessages: !!conv.lastMessage
-            };
+            try {
+              const roomParts = conv.roomId.split('_');
+              const mentorId = roomParts[1] === user._id ? roomParts[2] : roomParts[1];
+              const userDetails = await fetchUserDetails(mentorId);
+              const lastMessageText = conv.lastMessage?.text || 'No messages yet';
+              return {
+                id: conv.roomId,
+                mentorId,
+                name: userDetails.name,
+                title: userDetails.title,
+                avatar: userDetails.avatar,
+                lastMessage: lastMessageText,
+                unreadCount: conv.unreadCount || 0,
+                hasMessages: !!conv.lastMessage
+              };
+            } catch (error) {
+              // Handle missing users gracefully
+              const roomParts = conv.roomId.split('_');
+              const mentorId = roomParts[1] === user._id ? roomParts[2] : roomParts[1];
+              return {
+                id: conv.roomId,
+                mentorId,
+                name: `User ${mentorId.substring(0, 6)}`,
+                title: 'User',
+                avatar: undefined,
+                lastMessage: conv.lastMessage?.text || 'No messages yet',
+                unreadCount: conv.unreadCount || 0,
+                hasMessages: !!conv.lastMessage
+              };
+            }
           })
         );
         setConversations(transformedConversations);
@@ -248,19 +279,25 @@ const UserMenu = () => {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !API_BASE_URL) return;
     
-    // Check if socket already exists to prevent multiple connections
+    // Check if socket already exists and is connected
     if (socketRef.current?.connected) {
       return;
     }
     
+    const token = getToken();
+    if (!token) {
+      return; // Don't connect without token
+    }
+    
     const socket = io(API_BASE_URL, {
-      auth: { token: getToken() },
+      auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      timeout: 10000
     });
     socketRef.current = socket;
     
@@ -269,6 +306,13 @@ const UserMenu = () => {
         userId: user._id,
         userType: user.role || 'user'
       });
+    });
+    
+    socket.on('connect_error', (error) => {
+      // Only log if it's not a normal disconnection
+      if (error.message !== 'xhr poll error') {
+        console.log('Socket connection error:', error.message);
+      }
     });
     
     socket.on('newNotification', (notification: Notification) => {
@@ -289,7 +333,9 @@ const UserMenu = () => {
     
     return () => {
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        if (socketRef.current.connected) {
+          socketRef.current.disconnect();
+        }
         socketRef.current = null;
       }
     };

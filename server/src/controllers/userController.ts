@@ -31,24 +31,59 @@ const formatUserResponse = (user: any) => ({
 const formatPublicUserResponse = (user: any) => {
   const formatted = formatUserResponse(user);
   delete formatted.email;
+  
+  // Keep base64 images if they're reasonably sized (for backward compatibility)
+  // Large base64 images will be filtered out in the calling functions
+  // TODO: Migrate all base64 images to proper image storage (Cloudinary/S3)
+  
   return formatted;
 };
 
 export const getUserById = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.params.id).select('-password -email');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = req.params.id;
+    
+    // Validate ObjectId format
+    if (!userId || userId.length !== 24) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
+    const user = await User.findById(userId).select('-password -email');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
     // Use public formatter to exclude email for public access
-    res.json(formatPublicUserResponse(user));
+    const formatted = formatPublicUserResponse(user);
+    
+    // Keep base64 images for now (until migration) but limit size
+    if (formatted.avatar?.url && formatted.avatar.url.startsWith('data:')) {
+      // Only keep if it's reasonably sized (less than 100KB base64 = ~75KB image)
+      const base64Size = formatted.avatar.url.length;
+      if (base64Size > 100000) {
+        // Too large, remove it
+        formatted.avatar = {};
+      }
+      // Otherwise keep it for now
+    }
+    
+    res.json(formatted);
   } catch (error) {
+    console.error('Get user by ID error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 export const getMentors = async (req: Request, res: Response) => {
   try {
+    // ALWAYS enforce a limit for performance - default to 50 if not specified
+    const limit = parseInt(req.query.limit as string) || 50; // Default limit of 50
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+    const maxLimit = Math.min(limit, 100); // Cap at 100 for performance
+
     // Filter out test users and users with incomplete profiles
-    const mentors = await User.find({ 
+    const query = { 
       role: 'mentor',
       // Exclude test users
       firstName: { $not: /^test$/i },
@@ -60,10 +95,40 @@ export const getMentors = async (req: Request, res: Response) => {
         { bio: { $exists: true, $ne: '' } },
         { skills: { $exists: true, $ne: [] } }
       ]
-    })
+    };
+
+    const mentors = await User.find(query)
       .select('-password -email')
-      .sort({ createdAt: -1 });
-    res.json(mentors.map(formatPublicUserResponse));
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(maxLimit); // Always apply limit
+
+    // Format response - keep base64 images if reasonable size (for backward compatibility)
+    const formattedMentors = mentors.map(user => {
+      const formatted = formatPublicUserResponse(user);
+      // Only remove base64 images if they're too large (performance issue)
+      if (formatted.avatar?.url && formatted.avatar.url.startsWith('data:')) {
+        const base64Size = formatted.avatar.url.length;
+        if (base64Size > 100000) {
+          // Too large (>100KB), remove it to prevent performance issues
+          formatted.avatar = {};
+        }
+        // Otherwise keep it (for now, until migration to proper image storage)
+      }
+      return formatted;
+    });
+
+    // Always return paginated format for consistency and performance tracking
+    const total = await User.countDocuments(query);
+    res.json({
+      mentors: formattedMentors,
+      pagination: {
+        page,
+        limit: maxLimit,
+        total,
+        totalPages: Math.ceil(total / maxLimit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
